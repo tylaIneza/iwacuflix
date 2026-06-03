@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background, slightly rounded like Netflix app icon -->
+  <rect width="32" height="32" rx="6" fill="#141414"/>
+
+  <!-- Netflix-style bold "I" — top serif, stem, bottom serif -->
+  <!-- Top serif -->
+  <rect x="6"  y="4"  width="20" height="5" rx="1" fill="#E50914"/>
+  <!-- Stem -->
+  <rect x="11" y="9"  width="10" height="14" fill="#E50914"/>
+  <!-- Bottom serif -->
+  <rect x="6"  y="23" width="20" height="5" rx="1" fill="#E50914"/>
+</svg>

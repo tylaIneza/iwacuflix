@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  role      Role     @default(admin)
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+
+  @@map("users")
+}
+
+enum Role {
+  admin
+}
+
+model Content {
+  id          Int         @id @default(autoincrement()) @db.UnsignedInt
+  title       String      @db.VarChar(255)
+  description String      @db.Text
+  thumbnail   String      @db.VarChar(500)
+  videoUrl    String      @db.VarChar(500)
+  type        ContentType
+  category    String      @db.VarChar(100)
+  season      Int?        @db.SmallInt
+  episode     Int?        @db.SmallInt
+  isPublished Boolean     @default(false)
+  views       Int         @default(0) @db.UnsignedInt
+  createdAt   DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime    @updatedAt @db.Timestamp(0)
+
+  @@index([isPublished])
+  @@index([type])
+  @@index([category])
+  @@index([views])
+  @@map("content")
+}
+
+enum ContentType {
+  movie
+  series
+}
+
+model SiteVisit {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  path      String   @default("/") @db.VarChar(255)
+  ip        String?  @db.VarChar(45)
+  visitedAt DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([visitedAt])
+  @@index([path])
+  @@map("site_visits")
+}

@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Next.js build
+.next/
+
+# Env files (keep .env.example, ignore real ones)
+.env.local
+.env
+.env.production
+
+# Uploads (persistent on server, not in git)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Misc
+.DS_Store
+*.log
