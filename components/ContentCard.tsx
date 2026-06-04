@@ -56,7 +56,7 @@ export default function ContentCard({ content, progress }: Props) {
   return (
     <Link
       href={`/watch/${content._id}`}
-      className="block flex-shrink-0 w-40 md:w-48 card-scale group"
+      className="block flex-shrink-0 w-36 sm:w-40 md:w-48 card-scale group"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >

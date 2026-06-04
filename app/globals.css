@@ -141,3 +141,37 @@ body {
   color: #fff;
   border-bottom: 2px solid #E50914;
 }
+
+/* ── Mobile bottom nav safe area ─────────────────────── */
+.safe-pb {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
+/* ── Hide scrollbar utility ──────────────────────────── */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ── Episode horizontal scroll ───────────────────────── */
+.episode-scroll {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.episode-scroll::-webkit-scrollbar { display: none; }
+
+/* ── Responsive player padding-bottom (16:9) ─────────── */
+@media (max-width: 480px) {
+  .player-shadow {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+  }
+}
+
+/* ── Touch tap active state for cards ────────────────── */
+@media (hover: none) {
+  .card-scale:active {
+    transform: scale(0.97);
+  }
+}

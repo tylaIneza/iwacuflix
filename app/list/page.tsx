@@ -37,7 +37,7 @@ export default function MyListPage() {
     <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
 
-      <div className="pt-28 pb-20 px-4 md:px-10 max-w-6xl mx-auto">
+      <div className="pt-28 pb-28 md:pb-20 px-4 md:px-10 max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>

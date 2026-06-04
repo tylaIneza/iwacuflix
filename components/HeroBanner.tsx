@@ -46,7 +46,7 @@ export default function HeroBanner({ items }: { items: Content[] }) {
 
   return (
     <div
-      className="relative h-screen min-h-[580px] max-h-[900px] overflow-hidden noise select-none"
+      className="relative h-[85vh] sm:h-screen min-h-[520px] max-h-[900px] overflow-hidden noise select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -61,7 +61,7 @@ export default function HeroBanner({ items }: { items: Content[] }) {
       </div>
 
       {/* Content */}
-      <div className={`relative z-10 flex flex-col justify-end h-full pb-28 md:pb-36 px-6 md:px-16 max-w-3xl transition-all duration-500 ${fading ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'}`}>
+      <div className={`relative z-10 flex flex-col justify-end h-full pb-32 sm:pb-28 md:pb-36 px-5 sm:px-6 md:px-16 max-w-3xl transition-all duration-500 ${fading ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'}`}>
         {/* Badges */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           {isNew && (
@@ -79,35 +79,35 @@ export default function HeroBanner({ items }: { items: Content[] }) {
         </div>
 
         {/* Title */}
-        <h1 className="text-5xl sm:text-6xl md:text-8xl font-black text-white leading-none mb-4 drop-shadow-2xl gradient-text">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white leading-none mb-3 sm:mb-4 drop-shadow-2xl gradient-text">
           {item.title}
         </h1>
 
         {/* Description */}
-        <p className="text-gray-300 text-sm md:text-base max-w-xl mb-7 clamp-3 leading-relaxed">
+        <p className="text-gray-300 text-sm md:text-base max-w-xl mb-5 sm:mb-7 clamp-2 sm:clamp-3 leading-relaxed">
           {item.description}
         </p>
 
         {/* Buttons */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <Link
             href={`/watch/${item._id}`}
-            className="flex items-center gap-2.5 bg-white text-black font-black px-7 py-3.5 rounded-lg hover:bg-gray-100 transition-all text-sm shadow-2xl hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 sm:gap-2.5 bg-white text-black font-black px-5 sm:px-7 py-3 sm:py-3.5 rounded-xl hover:bg-gray-100 transition-all text-sm shadow-2xl hover:scale-105 active:scale-95"
           >
-            <FiPlay fill="black" size={17} /> Play Now
+            <FiPlay fill="black" size={16} /> Play Now
           </Link>
           <button
             onClick={handleList}
-            className="flex items-center gap-2 glass text-white font-semibold px-5 py-3.5 rounded-lg hover:bg-white/15 transition-all text-sm"
+            className="flex items-center gap-2 glass text-white font-semibold px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl hover:bg-white/15 transition-all text-sm"
           >
-            {inList ? <FiCheck size={17} className="text-green-400" /> : <FiPlus size={17} />}
+            {inList ? <FiCheck size={16} className="text-green-400" /> : <FiPlus size={16} />}
             {inList ? 'In My List' : 'My List'}
           </button>
           <Link
             href={`/watch/${item._id}`}
-            className="flex items-center gap-2 glass text-white font-semibold px-5 py-3.5 rounded-lg hover:bg-white/15 transition-all text-sm"
+            className="hidden sm:flex items-center gap-2 glass text-white font-semibold px-5 py-3.5 rounded-xl hover:bg-white/15 transition-all text-sm"
           >
-            <FiInfo size={17} /> More Info
+            <FiInfo size={16} /> More Info
           </Link>
         </div>
       </div>
@@ -115,18 +115,18 @@ export default function HeroBanner({ items }: { items: Content[] }) {
       {/* Prev / Next arrows */}
       {featured.length > 1 && (
         <>
-          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 z-20 glass w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all opacity-60 hover:opacity-100">
-            <FiChevronLeft size={20} />
+          <button onClick={prev} className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-20 glass w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all opacity-50 hover:opacity-100 active:scale-90">
+            <FiChevronLeft size={18} />
           </button>
-          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 z-20 glass w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all opacity-60 hover:opacity-100">
-            <FiChevronRight size={20} />
+          <button onClick={next} className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-20 glass w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all opacity-50 hover:opacity-100 active:scale-90">
+            <FiChevronRight size={18} />
           </button>
         </>
       )}
 
       {/* Progress dots */}
       {featured.length > 1 && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+        <div className="absolute bottom-8 sm:bottom-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
           {featured.map((_, i) => (
             <button
               key={i} onClick={() => go(i)}
@@ -139,7 +139,7 @@ export default function HeroBanner({ items }: { items: Content[] }) {
       )}
 
       {/* Slide counter */}
-      <div className="absolute bottom-10 right-8 z-20 text-gray-500 text-xs tabular-nums">
+      <div className="absolute bottom-8 sm:bottom-10 right-5 sm:right-8 z-20 text-gray-500 text-xs tabular-nums">
         {String(idx + 1).padStart(2, '0')} / {String(featured.length).padStart(2, '0')}
       </div>
     </div>

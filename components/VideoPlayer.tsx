@@ -123,19 +123,24 @@ export default function VideoPlayer({ url, content, startTime = 0, onEnded }: Pr
     <div className="w-full">
       {/* ── Player shell ─── */}
       <div
-        className="relative w-full rounded-2xl overflow-hidden"
+        className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden"
         style={{
           paddingBottom: '56.25%',
           background: '#000',
-          boxShadow: `0 0 0 1px rgba(255,255,255,0.07), 0 24px 60px rgba(0,0,0,0.8), 0 0 40px ${platform.color}22`,
+          boxShadow: `0 0 0 1px rgba(255,255,255,0.07), 0 16px 48px rgba(0,0,0,0.85), 0 0 32px ${platform.color}1a`,
         }}
       >
         {/* Loading overlay — shown until media fires onLoad / onCanPlay */}
         {!ready && !errored && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black">
+            {/* Ambient glow */}
+            <div
+              className="absolute inset-0 opacity-10"
+              style={{ background: `radial-gradient(ellipse at center, ${platform.color} 0%, transparent 70%)` }}
+            />
             <div className="relative z-10 flex flex-col items-center gap-4">
               {/* Triple-ring spinner */}
-              <div className="relative w-16 h-16">
+              <div className="relative w-14 h-14 sm:w-16 sm:h-16">
                 <div className="absolute inset-0 rounded-full border-2 border-white/5" />
                 <div
                   className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
@@ -146,11 +151,11 @@ export default function VideoPlayer({ url, content, startTime = 0, onEnded }: Pr
                   style={{ borderTopColor: `${platform.color}80`, animationDuration: '1.4s', animationDirection: 'reverse' }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-base" style={{ color: platform.color }}>{platform.icon}</span>
+                  <span className="text-sm" style={{ color: platform.color }}>{platform.icon}</span>
                 </div>
               </div>
-              <div className="text-center">
-                <p className="text-white text-sm font-semibold">{content.title}</p>
+              <div className="text-center px-4">
+                <p className="text-white text-sm font-semibold line-clamp-1">{content.title}</p>
                 <p className="text-gray-500 text-xs mt-0.5">Loading from {platform.name}…</p>
               </div>
             </div>

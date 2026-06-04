@@ -156,7 +156,7 @@ function HomeContent() {
       </div>
 
       {/* Content */}
-      <div className="pb-16">
+      <div className="pb-28 md:pb-16">
         {/* Search results */}
         {isSearching && (
           <div className="px-4 md:px-10 py-8">
