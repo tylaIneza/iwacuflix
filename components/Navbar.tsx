@@ -134,8 +134,10 @@ export default function Navbar({ onSearch }: Props) {
         </div>
       </nav>
 
-      {/* ── Mobile bottom nav ─────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0a0a0a]/96 backdrop-blur-xl border-t border-white/[0.08]">
+      {/* ── Mobile bottom nav — hidden on watch pages ─── */}
+      <nav className={`fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0a0a0a]/96 backdrop-blur-xl border-t border-white/[0.08] ${
+        pathname.startsWith('/watch') ? 'hidden' : ''
+      }`}>
         <div className="flex items-stretch justify-around" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           {NAV.map(({ href, label, icon }) => {
             const active = label === 'Home'

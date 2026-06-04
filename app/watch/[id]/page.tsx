@@ -94,7 +94,7 @@ export default function WatchPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4 pb-20">
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
         <p className="text-gray-500 text-sm">Loading…</p>
       </div>
@@ -103,7 +103,7 @@ export default function WatchPage() {
 
   if (error || !content) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4 pb-20 px-6 text-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-8xl mb-2">😕</p>
         <p className="text-gray-400 text-lg">{error || 'Content not found.'}</p>
         <Link href="/" className="flex items-center gap-2 text-[#E50914] hover:underline text-sm">
@@ -117,7 +117,7 @@ export default function WatchPage() {
     <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
 
-      <div className="pt-16 sm:pt-20 max-w-7xl mx-auto px-3 sm:px-4 md:px-8 pb-28 md:pb-20">
+      <div className="pt-16 sm:pt-20 max-w-7xl mx-auto px-3 sm:px-4 md:px-8 pb-12 md:pb-20">
 
         {/* Back button */}
         <Link
