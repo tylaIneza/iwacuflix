@@ -7,7 +7,7 @@ export const User = {
   async findByRole(role: 'admin') {
     return prisma.user.findFirst({ where: { role } });
   },
-  async create({ email, password, role = 'admin' as const }) {
+  async create({ email, password, role = 'admin' as const }: { email: string; password: string; role?: 'admin' }) {
     return prisma.user.create({ data: { email: email.toLowerCase(), password, role } });
   },
 };

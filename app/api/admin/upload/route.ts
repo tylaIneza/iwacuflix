@@ -3,8 +3,6 @@ import { verifyRequest } from '@/lib/server/auth';
 import { writeFile } from 'fs/promises';
 import { join, extname } from 'path';
 
-export const config = { api: { bodyParser: false } };
-
 export async function POST(req: NextRequest) {
   if (!verifyRequest(req)) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   try {
