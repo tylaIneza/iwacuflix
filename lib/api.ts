@@ -74,3 +74,16 @@ export const adminUploadThumbnail = (file: File) => {
   form.append('thumbnail', file);
   return api.post('/api/admin/upload', form).then((r) => r.data);
 };
+
+// ── User management ──────────────────────────────────────────
+export const adminFetchUsers = () =>
+  api.get('/api/admin/users').then((r) => r.data);
+
+export const adminCreateUser = (email: string, password: string) =>
+  api.post('/api/admin/users', { email, password }).then((r) => r.data);
+
+export const adminChangePassword = (id: number, password: string) =>
+  api.patch(`/api/admin/users/${id}`, { password }).then((r) => r.data);
+
+export const adminDeleteUser = (id: number) =>
+  api.delete(`/api/admin/users/${id}`).then((r) => r.data);

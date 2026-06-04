@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FiGrid, FiUpload, FiList, FiLogOut, FiFilm } from 'react-icons/fi';
+import { FiGrid, FiUpload, FiList, FiLogOut, FiFilm, FiUsers } from 'react-icons/fi';
 import { removeToken } from '@/lib/auth';
 
 const links = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: FiGrid },
   { href: '/admin/upload',    label: 'Upload',     icon: FiUpload },
   { href: '/admin/manage',    label: 'Manage',     icon: FiList },
+  { href: '/admin/users',     label: 'Users',      icon: FiUsers },
 ];
 
 export default function Sidebar() {
