@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRequest } from '@/lib/server/auth';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { join, extname } from 'path';
 
 export async function POST(req: NextRequest) {
@@ -12,14 +12,15 @@ export async function POST(req: NextRequest) {
     if (!file.type.startsWith('image/'))
       return NextResponse.json({ message: 'Images only' }, { status: 400 });
 
+    const uploadDir = join(process.cwd(), 'public', 'uploads');
+    await mkdir(uploadDir, { recursive: true });
+
     const ext      = extname(file.name) || '.jpg';
     const filename = `thumb_${Date.now()}${ext}`;
     const buffer   = Buffer.from(await file.arrayBuffer());
-    await writeFile(join(process.cwd(), 'public', 'uploads', filename), buffer);
+    await writeFile(join(uploadDir, filename), buffer);
 
-    const host = req.headers.get('host');
-    const proto = req.headers.get('x-forwarded-proto') || 'http';
-    return NextResponse.json({ url: `${proto}://${host}/uploads/${filename}` });
+    return NextResponse.json({ url: `/uploads/${filename}` });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ message: 'Upload failed' }, { status: 500 });
