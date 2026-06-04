@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     if (!file.type.startsWith('image/'))
       return NextResponse.json({ message: 'Images only' }, { status: 400 });
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
+    const uploadDir = join(process.cwd(), 'data', 'uploads');
     await mkdir(uploadDir, { recursive: true });
 
     const ext      = extname(file.name) || '.jpg';
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const buffer   = Buffer.from(await file.arrayBuffer());
     await writeFile(join(uploadDir, filename), buffer);
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    return NextResponse.json({ url: `/api/uploads/${filename}` });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ message: 'Upload failed' }, { status: 500 });
