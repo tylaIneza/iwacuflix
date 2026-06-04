@@ -54,10 +54,10 @@ export default function Navbar({ onSearch }: Props) {
           ? 'bg-[#0a0a0a]/95 backdrop-blur-md shadow-xl shadow-black/40'
           : 'bg-gradient-to-b from-black/80 to-transparent'
       }`}>
-        <div className="flex items-center justify-between px-4 md:px-10 py-3 md:py-4">
+        <div className="flex items-center justify-between px-4 md:px-10 py-3 md:py-4 gap-3">
 
-          {/* Logo */}
-          <div className="flex items-center gap-6 md:gap-8">
+          {/* Logo — hidden on mobile when search is open */}
+          <div className={`flex items-center gap-6 md:gap-8 flex-shrink-0 ${searchOn ? 'hidden md:flex' : ''}`}>
             <Link
               href="/"
               className="logo-wrap overflow-hidden flex-shrink-0 block"
@@ -104,21 +104,21 @@ export default function Navbar({ onSearch }: Props) {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="flex items-center gap-2 md:gap-3">
+          {/* Search — full-width on mobile when open */}
+          <div className={`flex items-center gap-2 md:gap-3 ${searchOn ? 'flex-1' : ''}`}>
             {onSearch && (
               searchOn ? (
-                <div className="flex items-center gap-2 glass px-3 py-2 rounded-lg">
+                <div className="flex items-center gap-2 glass px-3 py-2 rounded-xl w-full">
                   <FiSearch className="text-gray-400 flex-shrink-0" size={15} />
                   <input
                     ref={inputRef}
                     type="text"
-                    placeholder="Search…"
+                    placeholder="Search movies, series…"
                     onChange={(e) => onSearch(e.target.value)}
-                    className="bg-transparent text-white text-sm outline-none w-36 md:w-52 placeholder-gray-500"
+                    className="bg-transparent text-white text-sm outline-none flex-1 min-w-0 placeholder-gray-500"
                   />
-                  <button onClick={closeSearch} className="text-gray-500 hover:text-white flex-shrink-0">
-                    <FiX size={15} />
+                  <button onClick={closeSearch} className="text-gray-500 hover:text-white flex-shrink-0 p-0.5">
+                    <FiX size={16} />
                   </button>
                 </div>
               ) : (

@@ -84,7 +84,7 @@ export default function HeroBanner({ items }: { items: Content[] }) {
         </h1>
 
         {/* Description */}
-        <p className="text-gray-300 text-sm md:text-base max-w-xl mb-5 sm:mb-7 clamp-2 sm:clamp-3 leading-relaxed">
+        <p className="text-gray-300 text-sm md:text-base max-w-xl mb-5 sm:mb-7 line-clamp-2 sm:line-clamp-3 leading-relaxed">
           {item.description}
         </p>
 
