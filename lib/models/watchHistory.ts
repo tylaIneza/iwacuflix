@@ -9,81 +9,56 @@ function periodStart(period: 'today' | 'week' | 'month'): Date {
 }
 
 export const WatchHistory = {
-  // Create record if missing, or just touch lastWatchedAt (never resets watch time)
-  async ensureRecord(userId: number, videoId: number, totalVideoSeconds?: number) {
+  // Create row if missing, or just touch lastWatchedAt (never resets watch time)
+  async ensureRecord(sessionId: string, videoId: number, totalVideoSeconds?: number) {
     const now   = new Date();
     const total = totalVideoSeconds ?? 0;
-    return prisma.videoWatchHistory.upsert({
-      where:  { userId_videoId: { userId, videoId } },
-      create: { userId, videoId, watchTimeSeconds: 0, totalVideoSeconds: total, completionRate: 0, completed: false, startedAt: now, lastWatchedAt: now },
+    return prisma.watchEvent.upsert({
+      where:  { sessionId_videoId: { sessionId, videoId } },
+      create: { sessionId, videoId, watchTimeSeconds: 0, totalVideoSeconds: total, completionRate: 0, completed: false, startedAt: now, lastWatchedAt: now },
       update: { lastWatchedAt: now, ...(total > 0 ? { totalVideoSeconds: total } : {}) },
     });
   },
 
-  // Add a watch-time delta and update completion rate
+  // Increment watch time (never overwrites — accumulates across sessions)
   async addWatchTime(data: {
-    userId:            number;
+    sessionId:         string;
     videoId:           number;
-    watchTimeDelta:    number;   // seconds to ADD (not replace)
+    watchTimeDelta:    number;
     totalVideoSeconds?: number;
-    completionRate:    number;   // client-computed: sessionSecs / duration * 100
+    completionRate:    number;
     completed?:        boolean;
   }) {
     const total = data.totalVideoSeconds ?? 0;
     const done  = data.completed || data.completionRate >= 90;
     const now   = new Date();
-    return prisma.videoWatchHistory.upsert({
-      where:  { userId_videoId: { userId: data.userId, videoId: data.videoId } },
+    return prisma.watchEvent.upsert({
+      where:  { sessionId_videoId: { sessionId: data.sessionId, videoId: data.videoId } },
       create: {
-        userId:            data.userId,
-        videoId:           data.videoId,
-        watchTimeSeconds:  data.watchTimeDelta,
-        totalVideoSeconds: total,
-        completionRate:    data.completionRate,
-        completed:         done,
-        startedAt:         now,
-        lastWatchedAt:     now,
+        sessionId: data.sessionId, videoId: data.videoId,
+        watchTimeSeconds: data.watchTimeDelta, totalVideoSeconds: total,
+        completionRate: data.completionRate, completed: done,
+        startedAt: now, lastWatchedAt: now,
       },
       update: {
-        watchTimeSeconds:  { increment: data.watchTimeDelta },
-        completionRate:    data.completionRate,
-        completed:         done,
-        lastWatchedAt:     now,
+        watchTimeSeconds: { increment: data.watchTimeDelta },
+        completionRate:   data.completionRate,
+        completed:        done,
+        lastWatchedAt:    now,
         ...(total > 0 && { totalVideoSeconds: total }),
       },
     });
   },
 
-  // Keep for backward compat — used by analytics stats path only
-  async upsert(data: {
-    userId: number;
-    videoId: number;
-    watchTimeSeconds: number;
-    totalVideoSeconds?: number;
-    completed?: boolean;
-  }) {
-    return WatchHistory.addWatchTime({
-      userId:           data.userId,
-      videoId:          data.videoId,
-      watchTimeDelta:   data.watchTimeSeconds,
-      totalVideoSeconds: data.totalVideoSeconds,
-      completionRate:   data.totalVideoSeconds && data.totalVideoSeconds > 0
-        ? Math.min(100, (data.watchTimeSeconds / data.totalVideoSeconds) * 100)
-        : 0,
-      completed: data.completed,
-    });
-  },
-
   async findAll(opts: {
-    page?: number;
-    pageSize?: number;
-    search?: string;
-    userId?: number;
-    videoId?: number;
+    page?:      number;
+    pageSize?:  number;
+    search?:    string;
+    videoId?:   number;
     startDate?: Date;
-    endDate?: Date;
-    sortBy?: string;
-    sortDir?: 'asc' | 'desc';
+    endDate?:   Date;
+    sortBy?:    string;
+    sortDir?:   'asc' | 'desc';
   }) {
     const page     = Math.max(1, opts.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, opts.pageSize ?? 20));
@@ -91,7 +66,6 @@ export const WatchHistory = {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
-    if (opts.userId)  where.userId  = opts.userId;
     if (opts.videoId) where.videoId = opts.videoId;
     if (opts.startDate || opts.endDate) {
       where.createdAt = {
@@ -101,8 +75,8 @@ export const WatchHistory = {
     }
     if (opts.search) {
       where.OR = [
-        { user:  { email: { contains: opts.search } } },
         { video: { title: { contains: opts.search } } },
+        { sessionId: { contains: opts.search } },
       ];
     }
 
@@ -112,17 +86,14 @@ export const WatchHistory = {
     const orderBy: Record<string, 'asc' | 'desc'> = { [col]: dir };
 
     const [items, total] = await Promise.all([
-      prisma.videoWatchHistory.findMany({
+      prisma.watchEvent.findMany({
         where,
         orderBy,
         skip,
         take: pageSize,
-        include: {
-          user:  { select: { id: true, email: true } },
-          video: { select: { id: true, title: true, thumbnail: true, type: true } },
-        },
+        include: { video: { select: { id: true, title: true, thumbnail: true, type: true } } },
       }),
-      prisma.videoWatchHistory.count({ where }),
+      prisma.watchEvent.count({ where }),
     ]);
 
     return { items, total, page, pageSize, pages: Math.ceil(total / pageSize) };
@@ -135,14 +106,14 @@ export const WatchHistory = {
 
     const [allAgg, todayAgg, weekAgg, monthAgg, totalVideos, avgRate, activeToday, activeMonth] =
       await Promise.all([
-        prisma.videoWatchHistory.aggregate({ _sum: { watchTimeSeconds: true } }),
-        prisma.videoWatchHistory.aggregate({ where: { lastWatchedAt: { gte: todayStart } }, _sum: { watchTimeSeconds: true } }),
-        prisma.videoWatchHistory.aggregate({ where: { lastWatchedAt: { gte: weekStart  } }, _sum: { watchTimeSeconds: true } }),
-        prisma.videoWatchHistory.aggregate({ where: { lastWatchedAt: { gte: monthStart } }, _sum: { watchTimeSeconds: true } }),
-        prisma.videoWatchHistory.count(),
-        prisma.videoWatchHistory.aggregate({ _avg: { completionRate: true } }),
-        prisma.videoWatchHistory.groupBy({ by: ['userId'], where: { lastWatchedAt: { gte: todayStart } } }).then(r => r.length),
-        prisma.videoWatchHistory.groupBy({ by: ['userId'], where: { lastWatchedAt: { gte: monthStart } } }).then(r => r.length),
+        prisma.watchEvent.aggregate({ _sum: { watchTimeSeconds: true } }),
+        prisma.watchEvent.aggregate({ where: { lastWatchedAt: { gte: todayStart } }, _sum: { watchTimeSeconds: true } }),
+        prisma.watchEvent.aggregate({ where: { lastWatchedAt: { gte: weekStart  } }, _sum: { watchTimeSeconds: true } }),
+        prisma.watchEvent.aggregate({ where: { lastWatchedAt: { gte: monthStart } }, _sum: { watchTimeSeconds: true } }),
+        prisma.watchEvent.count(),
+        prisma.watchEvent.aggregate({ _avg: { completionRate: true } }),
+        prisma.watchEvent.groupBy({ by: ['sessionId'], where: { lastWatchedAt: { gte: todayStart } } }).then(r => r.length),
+        prisma.watchEvent.groupBy({ by: ['sessionId'], where: { lastWatchedAt: { gte: monthStart } } }).then(r => r.length),
       ]);
 
     return {
@@ -160,46 +131,44 @@ export const WatchHistory = {
 
   async videoStats(videoId: number) {
     const [rows, agg] = await Promise.all([
-      prisma.videoWatchHistory.findMany({
-        where: { videoId },
-        include: { user: { select: { id: true, email: true } } },
+      prisma.watchEvent.findMany({
+        where:   { videoId },
         orderBy: { watchTimeSeconds: 'desc' },
       }),
-      prisma.videoWatchHistory.aggregate({
+      prisma.watchEvent.aggregate({
         where: { videoId },
-        _sum: { watchTimeSeconds: true },
-        _avg: { watchTimeSeconds: true, completionRate: true },
+        _sum:   { watchTimeSeconds: true },
+        _avg:   { watchTimeSeconds: true, completionRate: true },
         _count: { id: true },
       }),
     ]);
 
     return {
-      totalViews:      agg._count.id,
-      totalWatchSecs:  agg._sum.watchTimeSeconds  ?? 0,
-      avgWatchSecs:    Math.round(agg._avg.watchTimeSeconds  ?? 0),
-      avgCompletion:   Math.round(agg._avg.completionRate ?? 0),
-      completedCount:  rows.filter(r => r.completed).length,
-      uniqueViewers:   rows.length,
-      topViewers:      rows.slice(0, 10).map(r => ({
-        userId:          r.userId,
-        email:           r.user.email,
+      totalViews:     agg._count.id,
+      totalWatchSecs: agg._sum.watchTimeSeconds  ?? 0,
+      avgWatchSecs:   Math.round(agg._avg.watchTimeSeconds  ?? 0),
+      avgCompletion:  Math.round(agg._avg.completionRate ?? 0),
+      completedCount: rows.filter(r => r.completed).length,
+      uniqueViewers:  rows.length,
+      topViewers:     rows.slice(0, 10).map(r => ({
+        sessionId:        r.sessionId,
         watchTimeSeconds: r.watchTimeSeconds,
-        completionRate:  Math.round(r.completionRate),
+        completionRate:   Math.round(r.completionRate),
       })),
     };
   },
 
-  async userStats(userId: number) {
+  async userStats(sessionId: string) {
     const [rows, agg] = await Promise.all([
-      prisma.videoWatchHistory.findMany({
-        where: { userId },
+      prisma.watchEvent.findMany({
+        where:   { sessionId },
         include: { video: { select: { id: true, title: true, thumbnail: true, type: true } } },
         orderBy: { lastWatchedAt: 'desc' },
       }),
-      prisma.videoWatchHistory.aggregate({
-        where: { userId },
-        _sum: { watchTimeSeconds: true },
-        _avg: { completionRate: true },
+      prisma.watchEvent.aggregate({
+        where: { sessionId },
+        _sum:   { watchTimeSeconds: true },
+        _avg:   { completionRate: true },
         _count: { id: true },
       }),
     ]);
@@ -218,9 +187,9 @@ export const WatchHistory = {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const rows = await prisma.videoWatchHistory.findMany({
-      where:   { createdAt: { gte: since } },
-      select:  { createdAt: true, watchTimeSeconds: true, completionRate: true },
+    const rows = await prisma.watchEvent.findMany({
+      where:  { createdAt: { gte: since } },
+      select: { createdAt: true, watchTimeSeconds: true, completionRate: true },
     });
 
     const map = new Map<string, { watchSecs: number; count: number; rateSum: number }>();
@@ -244,12 +213,12 @@ export const WatchHistory = {
   },
 
   async topVideos(limit = 10) {
-    const rows = await prisma.videoWatchHistory.groupBy({
-      by: ['videoId'],
-      _sum: { watchTimeSeconds: true },
-      _count: { id: true },
+    const rows = await prisma.watchEvent.groupBy({
+      by:      ['videoId'],
+      _sum:    { watchTimeSeconds: true },
+      _count:  { id: true },
       orderBy: { _sum: { watchTimeSeconds: 'desc' } },
-      take: limit,
+      take:    limit,
     });
 
     const ids    = rows.map(r => r.videoId);
@@ -257,84 +226,47 @@ export const WatchHistory = {
     const vmap   = new Map(videos.map(v => [v.id, v.title]));
 
     return rows.map(r => ({
-      videoId:         r.videoId,
-      title:           vmap.get(r.videoId) ?? `Video #${r.videoId}`,
+      videoId:          r.videoId,
+      title:            vmap.get(r.videoId) ?? `Video #${r.videoId}`,
       watchTimeMinutes: Math.round((r._sum.watchTimeSeconds ?? 0) / 60),
-      views:           r._count.id,
+      views:            r._count.id,
     }));
   },
 
-  async topUsers(limit = 10) {
-    const rows = await prisma.videoWatchHistory.groupBy({
-      by: ['userId'],
-      _sum: { watchTimeSeconds: true },
-      _count: { id: true },
-      orderBy: { _sum: { watchTimeSeconds: 'desc' } },
-      take: limit,
+  // Top videos by number of unique sessions (view count)
+  async topVideosByViews(limit = 10) {
+    const rows = await prisma.watchEvent.groupBy({
+      by:      ['videoId'],
+      _count:  { sessionId: true },
+      orderBy: { _count: { sessionId: 'desc' } },
+      take:    limit,
     });
 
-    const ids   = rows.map(r => r.userId);
-    const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, email: true } });
-    const umap  = new Map(users.map(u => [u.id, u.email]));
+    const ids    = rows.map(r => r.videoId);
+    const videos = await prisma.content.findMany({ where: { id: { in: ids } }, select: { id: true, title: true } });
+    const vmap   = new Map(videos.map(v => [v.id, v.title]));
 
     return rows.map(r => ({
-      userId:           r.userId,
-      email:            umap.get(r.userId) ?? `User #${r.userId}`,
-      watchTimeMinutes: Math.round((r._sum.watchTimeSeconds ?? 0) / 60),
-      videos:           r._count.id,
+      videoId: r.videoId,
+      title:   vmap.get(r.videoId) ?? `Video #${r.videoId}`,
+      views:   r._count.sessionId,
     }));
-  },
-
-  // All users from User table merged with their watch stats (zeros for inactive users)
-  async allUsersStats() {
-    const [users, aggs, lastWatched] = await Promise.all([
-      prisma.user.findMany({
-        select:  { id: true, email: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.videoWatchHistory.groupBy({
-        by: ['userId'],
-        _sum:   { watchTimeSeconds: true },
-        _count: { id: true },
-        _avg:   { completionRate: true },
-      }),
-      prisma.videoWatchHistory.groupBy({
-        by:      ['userId'],
-        _max:    { lastWatchedAt: true },
-      }),
-    ]);
-
-    const aggMap  = new Map(aggs.map(a => [a.userId, a]));
-    const lastMap = new Map(lastWatched.map(r => [r.userId, r._max.lastWatchedAt]));
-
-    return users.map(u => {
-      const agg = aggMap.get(u.id);
-      return {
-        id:               u.id,
-        email:            u.email,
-        createdAt:        u.createdAt,
-        watchTimeSeconds: agg?._sum.watchTimeSeconds ?? 0,
-        videosWatched:    agg?._count.id             ?? 0,
-        avgCompletion:    Math.round(agg?._avg.completionRate ?? 0),
-        lastActivity:     lastMap.get(u.id) ?? null,
-      };
-    });
   },
 
   async completionDistribution() {
     const [d0, d25, d50, d75, d90] = await Promise.all([
-      prisma.videoWatchHistory.count({ where: { completionRate: { lt: 25 } } }),
-      prisma.videoWatchHistory.count({ where: { completionRate: { gte: 25, lt: 50 } } }),
-      prisma.videoWatchHistory.count({ where: { completionRate: { gte: 50, lt: 75 } } }),
-      prisma.videoWatchHistory.count({ where: { completionRate: { gte: 75, lt: 90 } } }),
-      prisma.videoWatchHistory.count({ where: { completionRate: { gte: 90 } } }),
+      prisma.watchEvent.count({ where: { completionRate: { lt: 25 } } }),
+      prisma.watchEvent.count({ where: { completionRate: { gte: 25, lt: 50 } } }),
+      prisma.watchEvent.count({ where: { completionRate: { gte: 50, lt: 75 } } }),
+      prisma.watchEvent.count({ where: { completionRate: { gte: 75, lt: 90 } } }),
+      prisma.watchEvent.count({ where: { completionRate: { gte: 90 } } }),
     ]);
     return [
-      { name: '0–25%',  value: d0  },
-      { name: '25–50%', value: d25 },
-      { name: '50–75%', value: d50 },
-      { name: '75–90%', value: d75 },
-      { name: '90–100%',value: d90 },
+      { name: '0–25%',   value: d0  },
+      { name: '25–50%',  value: d25 },
+      { name: '50–75%',  value: d50 },
+      { name: '75–90%',  value: d75 },
+      { name: '90–100%', value: d90 },
     ];
   },
 };

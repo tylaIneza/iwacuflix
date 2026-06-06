@@ -1,13 +1,13 @@
 export interface WatchHistoryItem {
-  id: string;
-  user: { id: number; email: string };
-  video: { id: number; title: string; thumbnail: string; type: string };
+  id:               string;
+  sessionId:        string;
+  video:            { id: number; title: string; thumbnail: string; type: string };
   watchTimeSeconds: number;
   totalVideoSeconds: number;
-  completionRate: number;
-  startedAt: string | null;
-  lastWatchedAt: string | null;
-  completed: boolean;
+  completionRate:   number;
+  startedAt:        string | null;
+  lastWatchedAt:    string | null;
+  completed:        boolean;
 }
 
 export interface WatchHistoryPage {
@@ -33,15 +33,15 @@ export interface DailyWatchData {
 }
 
 export interface VideoAnalytics {
-  video: { id: number; title: string; thumbnail: string; type: string; category: string };
-  totalViews: number;
+  video:          { id: number; title: string; thumbnail: string; type: string; category: string };
+  totalViews:     number;
   totalWatchSeconds: number;
-  avgWatchSeconds: number;
+  avgWatchSeconds:   number;
   avgCompletionRate: number;
-  completedCount: number;
-  uniqueViewers: number;
-  topViewers: { userId: number; email: string; watchTimeSeconds: number; completionRate: number }[];
-  dailyData: DailyWatchData[];
+  completedCount:    number;
+  uniqueViewers:     number;
+  topViewers:        { sessionId: string; watchTimeSeconds: number; completionRate: number }[];
+  dailyData:         DailyWatchData[];
 }
 
 export interface UserAnalytics {

@@ -8,15 +8,15 @@ import { WatchTimeLine, CompletionTrendLine, DailyViewsLine } from '@/components
 import { FiArrowLeft, FiLoader, FiClock, FiUsers, FiCheckCircle, FiEye, FiTrendingUp } from 'react-icons/fi';
 
 interface VideoData {
-  video:            { id: number; title: string; thumbnail: string; type: string; category: string };
-  totalViews:       number;
-  totalWatchSecs:   number;
-  avgWatchSecs:     number;
-  avgCompletion:    number;
-  completedCount:   number;
-  uniqueViewers:    number;
-  topViewers:       { userId: number; email: string; watchTimeSeconds: number; completionRate: number }[];
-  dailyData:        { date: string; watchTimeMinutes: number; views: number; completionRate: number }[];
+  video:          { id: number; title: string; thumbnail: string; type: string; category: string };
+  totalViews:     number;
+  totalWatchSecs: number;
+  avgWatchSecs:   number;
+  avgCompletion:  number;
+  completedCount: number;
+  uniqueViewers:  number;
+  topViewers:     { sessionId: string; watchTimeSeconds: number; completionRate: number }[];
+  dailyData:      { date: string; watchTimeMinutes: number; views: number; completionRate: number }[];
 }
 
 function Skeleton({ className }: { className: string }) {
@@ -127,19 +127,19 @@ export default function VideoAnalyticsPage() {
             <thead>
               <tr className="border-b border-[#2a2a2a] text-gray-500 text-xs uppercase tracking-wide bg-white/[0.02]">
                 <th className="text-left px-4 py-3">#</th>
-                <th className="text-left px-4 py-3">User</th>
+                <th className="text-left px-4 py-3">Session</th>
                 <th className="text-left px-4 py-3">Watch Time</th>
                 <th className="text-left px-4 py-3">Completion</th>
               </tr>
             </thead>
             <tbody>
               {topViewers.map((v, i) => (
-                <tr key={v.userId} className="border-b border-[#1a1a1a] hover:bg-white/[0.02] transition-colors">
+                <tr key={v.sessionId} className="border-b border-[#1a1a1a] hover:bg-white/[0.02] transition-colors">
                   <td className="px-4 py-3 text-gray-600 text-xs font-bold">{i + 1}</td>
                   <td className="px-4 py-3">
-                    <Link href={`/admin/analytics/user/${v.userId}`} className="text-blue-400 hover:underline text-xs">
-                      {v.email}
-                    </Link>
+                    <span className="text-gray-400 font-mono text-xs" title={v.sessionId}>
+                      {v.sessionId.slice(0, 8)}…
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-gray-300 font-mono text-xs">{formatSeconds(v.watchTimeSeconds)}</td>
                   <td className="px-4 py-3">

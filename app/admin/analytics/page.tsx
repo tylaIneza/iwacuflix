@@ -4,24 +4,13 @@ import Link from 'next/link';
 import { adminFetchAnalytics, adminExportAnalytics } from '@/lib/api';
 import { formatSeconds, getWatchStatus, type WatchHistoryItem, type AnalyticsStats, type DailyWatchData } from '@/types/analytics';
 import {
-  WatchTimeLine, DailyViewsLine, TopVideosBar, TopUsersBar, CompletionPie,
+  WatchTimeLine, DailyViewsLine, TopVideosBar, CompletionPie,
 } from '@/components/admin/analytics/AnalyticsCharts';
 import {
   FiLoader, FiClock, FiTrendingUp, FiUsers, FiCheckCircle,
   FiSearch, FiDownload, FiChevronLeft, FiChevronRight,
   FiArrowUp, FiArrowDown, FiBarChart2, FiEye,
 } from 'react-icons/fi';
-
-// ── Types ────────────────────────────────────────────────────
-interface AllUser {
-  id:               number;
-  email:            string;
-  createdAt:        string;
-  watchTimeSeconds: number;
-  videosWatched:    number;
-  avgCompletion:    number;
-  lastActivity:     string | null;
-}
 
 // ── Status Badge ─────────────────────────────────────────────
 function StatusBadge({ item }: { item: WatchHistoryItem }) {
@@ -84,10 +73,9 @@ export default function AnalyticsPage() {
   const [pages,      setPages]      = useState(1);
   const [page,       setPage]       = useState(1);
   const [daily,      setDaily]      = useState<DailyWatchData[]>([]);
-  const [topVideos,  setTopVideos]  = useState<{ title: string; watchTimeMinutes: number; views: number }[]>([]);
-  const [topUsers,   setTopUsers]   = useState<{ email: string; watchTimeMinutes: number }[]>([]);
-  const [compDist,   setCompDist]   = useState<{ name: string; value: number }[]>([]);
-  const [allUsers,   setAllUsers]   = useState<AllUser[]>([]);
+  const [topVideos,     setTopVideos]     = useState<{ title: string; watchTimeMinutes: number; views: number }[]>([]);
+  const [topVideoViews, setTopVideoViews] = useState<{ title: string; views: number }[]>([]);
+  const [compDist,      setCompDist]      = useState<{ name: string; value: number }[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [tblLoading, setTblLoading] = useState(false);
   const [search,     setSearch]     = useState('');
@@ -119,16 +107,14 @@ export default function AnalyticsPage() {
       adminFetchAnalytics({ action: 'stats' }),
       adminFetchAnalytics({ action: 'daily', days: '30' }),
       adminFetchAnalytics({ action: 'topVideos' }),
-      adminFetchAnalytics({ action: 'topUsers' }),
+      adminFetchAnalytics({ action: 'topVideosByViews' }),
       adminFetchAnalytics({ action: 'completionDist' }),
-      adminFetchAnalytics({ action: 'allUsers' }),
-    ]).then(([s, d, tv, tu, cd, au]) => {
+    ]).then(([s, d, tv, tvv, cd]) => {
       setStats(s);
       setDaily(d);
       setTopVideos(tv);
-      setTopUsers(tu);
+      setTopVideoViews(tvv);
       setCompDist(cd);
-      setAllUsers(au);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
@@ -195,11 +181,11 @@ export default function AnalyticsPage() {
         <ChartCard title="Daily Views" icon={FiEye}>
           {loading ? <Skeleton className="h-52" /> : <DailyViewsLine data={daily} />}
         </ChartCard>
-        <ChartCard title="Most Watched Videos" icon={FiBarChart2}>
+        <ChartCard title="Most Watched Videos (by Time)" icon={FiBarChart2}>
           {loading ? <Skeleton className="h-52" /> : <TopVideosBar data={topVideos} />}
         </ChartCard>
-        <ChartCard title="Top Active Users" icon={FiUsers}>
-          {loading ? <Skeleton className="h-52" /> : <TopUsersBar data={topUsers} />}
+        <ChartCard title="Most Watched Videos (by Views)" icon={FiEye}>
+          {loading ? <Skeleton className="h-52" /> : <TopVideosBar data={topVideoViews.map(v => ({ title: v.title, watchTimeMinutes: v.views, views: v.views }))} />}
         </ChartCard>
         <ChartCard title="Completion Rate Distribution" icon={FiCheckCircle}>
           {loading ? <Skeleton className="h-52" /> : <CompletionPie data={compDist} />}
@@ -250,13 +236,13 @@ export default function AnalyticsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#2a2a2a] text-gray-500 text-xs uppercase tracking-wide bg-white/[0.02]">
-                <SortTh label="User"         field="userId"        {...{ sortBy, sortDir, onSort: handleSort }} />
-                <SortTh label="Video"        field="videoId"       {...{ sortBy, sortDir, onSort: handleSort }} />
+                <th className="text-left px-4 py-3">Session</th>
+                <SortTh label="Video"        field="videoId"          {...{ sortBy, sortDir, onSort: handleSort }} />
                 <SortTh label="Watch Time"   field="watchTimeSeconds" {...{ sortBy, sortDir, onSort: handleSort }} />
-                <SortTh label="Completion"   field="completionRate" {...{ sortBy, sortDir, onSort: handleSort }} />
-                <SortTh label="Last Watched" field="lastWatchedAt" {...{ sortBy, sortDir, onSort: handleSort }} />
+                <SortTh label="Completion"   field="completionRate"   {...{ sortBy, sortDir, onSort: handleSort }} />
+                <SortTh label="Last Watched" field="lastWatchedAt"    {...{ sortBy, sortDir, onSort: handleSort }} />
                 <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3 hidden md:table-cell">Actions</th>
+                <th className="text-left px-4 py-3 hidden md:table-cell">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -280,16 +266,16 @@ export default function AnalyticsPage() {
                 history.map(item => (
                   <tr key={item.id} className="border-b border-[#1a1a1a] hover:bg-white/[0.02] transition-colors">
                     <td className="px-4 py-3">
-                      <Link href={`/admin/analytics/user/${item.user.id}`} className="text-blue-400 hover:underline text-xs">
-                        {item.user.email}
-                      </Link>
+                      <span className="text-gray-500 font-mono text-[11px]" title={item.sessionId}>
+                        {item.sessionId.slice(0, 8)}…
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={item.video.thumbnail} alt="" className="w-10 h-6 rounded object-cover bg-gray-800 hidden sm:block flex-shrink-0"
                              onError={e => ((e.target as HTMLImageElement).style.display = 'none')} />
-                        <Link href={`/admin/analytics/video/${item.video.id}`} className="text-white hover:text-[#E50914] transition-colors truncate max-w-[140px]">
+                        <Link href={`/admin/analytics/video/${item.video.id}`} className="text-white hover:text-[#E50914] transition-colors truncate max-w-[160px]">
                           {item.video.title}
                         </Link>
                       </div>
@@ -308,12 +294,8 @@ export default function AnalyticsPage() {
                     </td>
                     <td className="px-4 py-3"><StatusBadge item={item} /></td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <div className="flex gap-2">
-                        <Link href={`/admin/analytics/video/${item.video.id}`}
-                              className="text-[11px] text-[#E50914] hover:underline">Video</Link>
-                        <Link href={`/admin/analytics/user/${item.user.id}`}
-                              className="text-[11px] text-blue-400 hover:underline">User</Link>
-                      </div>
+                      <Link href={`/admin/analytics/video/${item.video.id}`}
+                            className="text-[11px] text-[#E50914] hover:underline">Video</Link>
                     </td>
                   </tr>
                 ))
@@ -350,69 +332,6 @@ export default function AnalyticsPage() {
         )}
       </div>
 
-      {/* ── Users Overview ─────────────────────────────────── */}
-      <div className="border border-[#2a2a2a] rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2a2a]">
-          <div className="flex items-center gap-2">
-            <FiUsers size={16} className="text-[#E50914]" />
-            <h2 className="text-white font-semibold text-sm">All Users</h2>
-            <span className="text-gray-500 text-xs">({allUsers.length})</span>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#2a2a2a] text-left text-xs text-gray-500">
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Watch Time</th>
-                <th className="px-4 py-3 font-medium">Videos</th>
-                <th className="px-4 py-3 font-medium">Avg Completion</th>
-                <th className="px-4 py-3 font-medium">Last Activity</th>
-                <th className="px-4 py-3 font-medium">Member Since</th>
-                <th className="px-4 py-3 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {allUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-600 text-sm">No users found</td>
-                </tr>
-              ) : (
-                allUsers.map(u => (
-                  <tr key={u.id} className="border-b border-[#1a1a1a] hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3">
-                      <Link href={`/admin/analytics/user/${u.id}`} className="text-white hover:text-[#E50914] transition-colors truncate max-w-[200px] block">
-                        {u.email}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-gray-300 font-mono text-xs">{formatSeconds(u.watchTimeSeconds)}</td>
-                    <td className="px-4 py-3 text-gray-300 text-xs">{u.videosWatched}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#E50914] rounded-full" style={{ width: `${u.avgCompletion}%` }} />
-                        </div>
-                        <span className="text-gray-400 text-xs">{u.avgCompletion}%</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {u.lastActivity ? new Date(u.lastActivity).toLocaleDateString() : <span className="text-gray-700">Never</span>}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {new Date(u.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link href={`/admin/analytics/user/${u.id}`}
-                            className="text-[11px] text-blue-400 hover:underline">Details</Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }

@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
   const page     = parseInt(searchParams.get('page')     ?? '1',  10);
   const pageSize = parseInt(searchParams.get('pageSize') ?? '20', 10);
   const search   = searchParams.get('search') ?? undefined;
-  const userId   = searchParams.get('userId')  ? parseInt(searchParams.get('userId')!,  10) : undefined;
   const videoId  = searchParams.get('videoId') ? parseInt(searchParams.get('videoId')!, 10) : undefined;
   const sortBy   = searchParams.get('sortBy')  ?? 'lastWatchedAt';
   const sortDir  = (searchParams.get('sortDir') ?? 'desc') as 'asc' | 'desc';
@@ -34,21 +33,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(await WatchHistory.topVideos());
     }
 
-    if (action === 'topUsers') {
-      return NextResponse.json(await WatchHistory.topUsers());
+    if (action === 'topVideosByViews') {
+      return NextResponse.json(await WatchHistory.topVideosByViews());
     }
 
     if (action === 'completionDist') {
       return NextResponse.json(await WatchHistory.completionDistribution());
     }
 
-    if (action === 'allUsers') {
-      return NextResponse.json(await WatchHistory.allUsersStats());
-    }
-
     // default: history table
     const result = await WatchHistory.findAll({
-      page, pageSize, search, userId, videoId,
+      page, pageSize, search, videoId,
       startDate, endDate, sortBy,
       sortDir: sortDir === 'asc' ? 'asc' : 'desc',
     });

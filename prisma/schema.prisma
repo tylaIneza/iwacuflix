@@ -8,12 +8,11 @@ datasource db {
 }
 
 model User {
-  id           Int                 @id @default(autoincrement()) @db.UnsignedInt
-  email        String              @unique @db.VarChar(255)
-  password     String              @db.VarChar(255)
-  role         Role                @default(admin)
-  createdAt    DateTime            @default(now()) @db.Timestamp(0)
-  watchHistory VideoWatchHistory[]
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  role      Role     @default(admin)
+  createdAt DateTime @default(now()) @db.Timestamp(0)
 
   @@map("users")
 }
@@ -23,20 +22,20 @@ enum Role {
 }
 
 model Content {
-  id           Int                 @id @default(autoincrement()) @db.UnsignedInt
-  title        String              @db.VarChar(255)
-  description  String              @db.Text
-  thumbnail    String              @db.VarChar(500)
-  videoUrl     String              @db.VarChar(500)
-  type         ContentType
-  category     String              @db.VarChar(100)
-  season       Int?                @db.SmallInt
-  episode      Int?                @db.SmallInt
-  isPublished  Boolean             @default(false)
-  views        Int                 @default(0) @db.UnsignedInt
-  createdAt    DateTime            @default(now()) @db.Timestamp(0)
-  updatedAt    DateTime            @updatedAt @db.Timestamp(0)
-  watchHistory VideoWatchHistory[]
+  id          Int          @id @default(autoincrement()) @db.UnsignedInt
+  title       String       @db.VarChar(255)
+  description String       @db.Text
+  thumbnail   String       @db.VarChar(500)
+  videoUrl    String       @db.VarChar(500)
+  type        ContentType
+  category    String       @db.VarChar(100)
+  season      Int?         @db.SmallInt
+  episode     Int?         @db.SmallInt
+  isPublished Boolean      @default(false)
+  views       Int          @default(0) @db.UnsignedInt
+  createdAt   DateTime     @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime     @updatedAt @db.Timestamp(0)
+  watchEvents WatchEvent[]
 
   @@index([isPublished])
   @@index([type])
@@ -50,26 +49,27 @@ enum ContentType {
   series
 }
 
-model VideoWatchHistory {
+// Tracks watch time for every visitor — no login required.
+// sessionId is a UUID generated in the visitor's localStorage.
+model WatchEvent {
   id                String    @id @default(cuid())
-  userId            Int       @db.UnsignedInt
+  sessionId         String    @db.VarChar(64)
   videoId           Int       @db.UnsignedInt
   watchTimeSeconds  Int       @default(0)
   totalVideoSeconds Int       @default(0)
   completionRate    Float     @default(0)
+  completed         Boolean   @default(false)
   startedAt         DateTime? @db.Timestamp(0)
   lastWatchedAt     DateTime? @db.Timestamp(0)
-  completed         Boolean   @default(false)
   createdAt         DateTime  @default(now()) @db.Timestamp(0)
   updatedAt         DateTime  @updatedAt @db.Timestamp(0)
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   video             Content   @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, videoId])
-  @@index([userId])
+  @@unique([sessionId, videoId])
   @@index([videoId])
+  @@index([sessionId])
   @@index([createdAt])
-  @@map("video_watch_history")
+  @@map("watch_event")
 }
 
 model SiteVisit {

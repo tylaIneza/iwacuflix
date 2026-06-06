@@ -22,11 +22,11 @@ export async function GET(req: NextRequest) {
   try {
     const { items } = await WatchHistory.findAll({ pageSize: 10_000, startDate, endDate, sortBy: 'lastWatchedAt', sortDir: 'desc' });
 
-    const header = ['User Email', 'Video Title', 'Video Type', 'Watch Time', 'Completion %', 'Status', 'Started At', 'Last Watched'];
+    const header = ['Session ID', 'Video Title', 'Video Type', 'Watch Time', 'Completion %', 'Status', 'Started At', 'Last Watched'];
     const rows   = items.map(r => {
       const status = r.completed ? 'Completed' : r.watchTimeSeconds >= 30 ? 'In Progress' : 'Abandoned';
       return [
-        esc(r.user.email),
+        esc(r.sessionId),
         esc(r.video.title),
         esc(r.video.type),
         esc(formatSeconds(r.watchTimeSeconds)),
