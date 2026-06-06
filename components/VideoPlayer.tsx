@@ -183,12 +183,11 @@ export default function VideoPlayer({ url, content, startTime = 0, onEnded, onPl
           const isYT    = src.includes('youtube.com') || src.includes('youtu.be');
           const isDrive = src.includes('drive.google.com');
 
-          // YouTube: scale slightly to clip watermarks
           // Google Drive: shift up 52 px to clip the Drive toolbar/header bar;
           //   height is extended to compensate so the video fills the container.
           //   The parent's overflow:hidden does the actual clipping.
           const iframeStyle: React.CSSProperties = isYT
-            ? { position: 'absolute', top: '-5%', left: '-3%', width: '106%', height: '110%', border: 'none', opacity: ready ? 1 : 0, transition: 'opacity 0.7s' }
+            ? { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', opacity: ready ? 1 : 0, transition: 'opacity 0.7s' }
             : isDrive
             ? { position: 'absolute', top: '-52px', left: 0, width: '100%', height: 'calc(100% + 52px)', border: 'none', opacity: ready ? 1 : 0, transition: 'opacity 0.7s' }
             : { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', opacity: ready ? 1 : 0, transition: 'opacity 0.7s' };

@@ -1,13 +1,13 @@
 const TOKEN_KEY  = 'iwacu_token';
 const WATCH_KEY  = 'iwacu_watching';
 
-// ── Token management ──────────────────────────────────────
+// ── Token management — sessionStorage so token clears on tab/window close ─
 export const getToken = (): string | null => {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return sessionStorage.getItem(TOKEN_KEY);
 };
-export const setToken = (t: string) => localStorage.setItem(TOKEN_KEY, t);
-export const removeToken = () => localStorage.removeItem(TOKEN_KEY);
+export const setToken = (t: string) => sessionStorage.setItem(TOKEN_KEY, t);
+export const removeToken = () => sessionStorage.removeItem(TOKEN_KEY);
 export const isLoggedIn = () => !!getToken();
 
 // ── Continue Watching (localStorage, no login needed) ─────
