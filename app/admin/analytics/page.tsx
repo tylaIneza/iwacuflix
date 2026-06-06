@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { adminFetchAnalytics, adminExportAnalytics } from '@/lib/api';
+import { getToken } from '@/lib/auth';
 import { formatSeconds, getWatchStatus, type WatchHistoryItem, type AnalyticsStats, type DailyWatchData } from '@/types/analytics';
 import {
   WatchTimeLine, DailyViewsLine, TopVideosBar, CompletionPie,
@@ -9,7 +10,7 @@ import {
 import {
   FiLoader, FiClock, FiTrendingUp, FiUsers, FiCheckCircle,
   FiSearch, FiDownload, FiChevronLeft, FiChevronRight,
-  FiArrowUp, FiArrowDown, FiBarChart2, FiEye,
+  FiArrowUp, FiArrowDown, FiBarChart2, FiEye, FiRadio,
 } from 'react-icons/fi';
 
 // ── Status Badge ─────────────────────────────────────────────
@@ -76,6 +77,8 @@ export default function AnalyticsPage() {
   const [topVideos,     setTopVideos]     = useState<{ title: string; watchTimeMinutes: number; views: number }[]>([]);
   const [topVideoViews, setTopVideoViews] = useState<{ title: string; views: number }[]>([]);
   const [compDist,      setCompDist]      = useState<{ name: string; value: number }[]>([]);
+  const [liveNow,       setLiveNow]       = useState(0);
+  const [liveConnected, setLiveConnected] = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [tblLoading, setTblLoading] = useState(false);
   const [search,     setSearch]     = useState('');
@@ -121,6 +124,67 @@ export default function AnalyticsPage() {
   useEffect(() => { fetchHistory(page); }, [fetchHistory, page]);
   useEffect(() => { setPage(1); }, [search, startDate, endDate, sortBy, sortDir]);
 
+  // ── Live SSE stream ───────────────────────────────────────
+  const fetchHistoryRef = useRef(fetchHistory);
+  fetchHistoryRef.current = fetchHistory;
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+
+    let active = true;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/analytics/stream', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal:  controller.signal,
+        });
+        if (!res.ok || !res.body) return;
+        setLiveConnected(true);
+
+        const reader = res.body.getReader();
+        const dec    = new TextDecoder();
+        let buf      = '';
+
+        while (active) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+
+          let event = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) { event = line.slice(7).trim(); }
+            else if (line.startsWith('data: ')) {
+              try {
+                const payload = JSON.parse(line.slice(6));
+                if (event === 'stats') {
+                  setStats(payload);
+                  if (payload.liveNow !== undefined) setLiveNow(payload.liveNow);
+                } else if (event === 'watch') {
+                  if (payload.liveNow !== undefined) setLiveNow(payload.liveNow);
+                  // Refresh history table after a brief delay
+                  setTimeout(() => { if (active) fetchHistoryRef.current(1); }, 1_500);
+                }
+              } catch { /* ignore malformed */ }
+              event = '';
+            }
+          }
+        }
+      } catch { /* aborted or network error */ }
+      setLiveConnected(false);
+    })();
+
+    return () => {
+      active = false;
+      controller.abort();
+      setLiveConnected(false);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSort = (field: string) => {
     if (sortBy === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortBy(field); setSortDir('desc'); }
@@ -136,14 +200,14 @@ export default function AnalyticsPage() {
   }, [startDate, endDate]);
 
   const cards: CardDef[] = !stats ? [] : [
-    { label: 'Watch Time Today',    value: formatSeconds(stats.watchTime.today),   sub: 'last 24h',        color: 'text-[#E50914]', bg: 'bg-[#E50914]/10 border-[#E50914]/20', Icon: FiClock },
-    { label: 'Watch Time This Week', value: formatSeconds(stats.watchTime.week),   sub: 'last 7 days',     color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20',   Icon: FiClock },
-    { label: 'Watch Time This Month',value: formatSeconds(stats.watchTime.month),  sub: 'last 30 days',    color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20',Icon: FiClock },
-    { label: 'All-Time Watch Time',  value: formatSeconds(stats.watchTime.allTime),sub: 'total',           color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20',Icon: FiClock },
-    { label: 'Total Videos Watched', value: stats.totalVideosWatched.toLocaleString(), sub: 'unique views',color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/20',  Icon: FiEye },
-    { label: 'Avg Completion Rate',  value: `${stats.avgCompletionRate}%`,          sub: 'across all views',color: 'text-teal-400',  bg: 'bg-teal-500/10 border-teal-500/20',    Icon: FiCheckCircle },
-    { label: 'Active Users Today',   value: stats.activeUsers.today.toLocaleString(),sub: 'watching today',color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20',Icon: FiUsers },
-    { label: 'Active Users (Month)', value: stats.activeUsers.month.toLocaleString(),sub: 'last 30 days',  color: 'text-pink-400',   bg: 'bg-pink-500/10 border-pink-500/20',    Icon: FiTrendingUp },
+    { label: 'Watch Time Today',     value: formatSeconds(stats.watchTime.today),        sub: 'last 24h',        color: 'text-[#E50914]', bg: 'bg-[#E50914]/10 border-[#E50914]/20',   Icon: FiClock },
+    { label: 'Watch Time This Week', value: formatSeconds(stats.watchTime.week),         sub: 'last 7 days',     color: 'text-blue-400',  bg: 'bg-blue-500/10 border-blue-500/20',     Icon: FiClock },
+    { label: 'Watch Time This Month',value: formatSeconds(stats.watchTime.month),        sub: 'last 30 days',    color: 'text-purple-400',bg: 'bg-purple-500/10 border-purple-500/20', Icon: FiClock },
+    { label: 'All-Time Watch Time',  value: formatSeconds(stats.watchTime.allTime),      sub: 'total',           color: 'text-yellow-400',bg: 'bg-yellow-500/10 border-yellow-500/20', Icon: FiClock },
+    { label: 'Total Views',          value: stats.totalVideosWatched.toLocaleString(),   sub: 'unique sessions', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20',   Icon: FiEye },
+    { label: 'Avg Completion Rate',  value: `${stats.avgCompletionRate}%`,               sub: 'across all views',color: 'text-teal-400',  bg: 'bg-teal-500/10 border-teal-500/20',     Icon: FiCheckCircle },
+    { label: 'Watching Right Now',   value: liveNow.toLocaleString(),                    sub: 'live sessions',   color: 'text-red-400',   bg: 'bg-red-500/10 border-red-500/20',       Icon: FiRadio },
+    { label: 'Active This Month',    value: stats.activeUsers.month.toLocaleString(),    sub: 'last 30 days',    color: 'text-pink-400',  bg: 'bg-pink-500/10 border-pink-500/20',     Icon: FiTrendingUp },
   ];
 
   return (
@@ -151,7 +215,15 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-white text-2xl font-bold">Video Analytics</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-white text-2xl font-bold">Video Analytics</h1>
+            {liveConnected && (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                LIVE
+              </span>
+            )}
+          </div>
           <p className="text-gray-500 text-sm mt-1">Watch time and engagement insights</p>
         </div>
         <button

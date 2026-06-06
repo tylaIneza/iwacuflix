@@ -12,8 +12,23 @@ import { useVideoWatchTracker } from '@/hooks/useVideoWatchTracker';
 import { isInWatchlist, toggleWatchlist } from '@/lib/watchlist';
 import {
   FiArrowLeft, FiChevronRight, FiPlus, FiCheck,
-  FiShare2, FiClock, FiFilm, FiTv, FiPlay,
+  FiShare2, FiClock, FiFilm, FiTv, FiPlay, FiRadio,
 } from 'react-icons/fi';
+
+function useLiveViewers(videoId: string | undefined) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!videoId) return;
+    const id = Number(videoId);
+    if (!id) return;
+    const fetch_ = () =>
+      fetch(`/api/live/${id}`).then(r => r.json()).then(d => setCount(d.count ?? 0)).catch(() => {});
+    fetch_();
+    const iv = setInterval(fetch_, 30_000);
+    return () => clearInterval(iv);
+  }, [videoId]);
+  return count;
+}
 
 export default function WatchPage() {
   const { id }  = useParams<{ id: string }>();
@@ -30,10 +45,8 @@ export default function WatchPage() {
   const [copied,    setCopied]    = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
 
-  const tracker = useVideoWatchTracker({
-    videoId:  id,
-    videoUrl: content?.videoUrl ?? '',
-  });
+  const tracker     = useVideoWatchTracker({ videoId: id, videoUrl: content?.videoUrl ?? '' });
+  const liveViewers = useLiveViewers(content ? id : undefined);
 
   const load = useCallback(async (contentId: string) => {
     setLoading(true); setError('');
@@ -219,7 +232,15 @@ export default function WatchPage() {
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight">{content.title}</h1>
+              <div className="flex items-center gap-3 flex-wrap mb-1">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight">{content.title}</h1>
+                {liveViewers > 0 && (
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    <FiRadio size={11} className="animate-pulse" />
+                    {liveViewers} watching
+                  </span>
+                )}
+              </div>
               <p className="text-gray-400 mt-3 text-sm leading-relaxed max-w-2xl">{content.description}</p>
 
               {/* Action row */}

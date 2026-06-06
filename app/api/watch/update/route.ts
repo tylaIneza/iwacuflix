@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WatchHistory } from '@/lib/models/watchHistory';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { emitWatchUpdate } from '@/lib/broadcast';
+import { heartbeat } from '@/lib/activeSessions';
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
@@ -31,6 +33,8 @@ export async function POST(req: NextRequest) {
       totalVideoSeconds: totalVideoSecs > 0 ? totalVideoSecs : undefined,
       completionRate,
     });
+    heartbeat(sessionId, videoId);
+    emitWatchUpdate({ videoId, sessionId, watchTimeDelta: Math.floor(watchTimeDelta) });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[watch/update]', err);

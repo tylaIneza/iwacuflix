@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WatchHistory } from '@/lib/models/watchHistory';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { heartbeat } from '@/lib/activeSessions';
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
       videoId,
       totalVideoSecs > 0 ? totalVideoSecs : undefined,
     );
+    heartbeat(sessionId, videoId);
     return NextResponse.json({ id: record.id, watchTimeSeconds: record.watchTimeSeconds });
   } catch (err) {
     console.error('[watch/start]', err);
