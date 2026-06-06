@@ -254,6 +254,42 @@ export const WatchHistory = {
     }));
   },
 
+  // All users from User table merged with their watch stats (zeros for inactive users)
+  async allUsersStats() {
+    const [users, aggs, lastWatched] = await Promise.all([
+      prisma.user.findMany({
+        select:  { id: true, email: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.videoWatchHistory.groupBy({
+        by: ['userId'],
+        _sum:   { watchTimeSeconds: true },
+        _count: { id: true },
+        _avg:   { completionRate: true },
+      }),
+      prisma.videoWatchHistory.groupBy({
+        by:      ['userId'],
+        _max:    { lastWatchedAt: true },
+      }),
+    ]);
+
+    const aggMap  = new Map(aggs.map(a => [a.userId, a]));
+    const lastMap = new Map(lastWatched.map(r => [r.userId, r._max.lastWatchedAt]));
+
+    return users.map(u => {
+      const agg = aggMap.get(u.id);
+      return {
+        id:               u.id,
+        email:            u.email,
+        createdAt:        u.createdAt,
+        watchTimeSeconds: agg?._sum.watchTimeSeconds ?? 0,
+        videosWatched:    agg?._count.id             ?? 0,
+        avgCompletion:    Math.round(agg?._avg.completionRate ?? 0),
+        lastActivity:     lastMap.get(u.id) ?? null,
+      };
+    });
+  },
+
   async completionDistribution() {
     const [d0, d25, d50, d75, d90] = await Promise.all([
       prisma.videoWatchHistory.count({ where: { completionRate: { lt: 25 } } }),

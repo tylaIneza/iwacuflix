@@ -12,6 +12,17 @@ import {
   FiArrowUp, FiArrowDown, FiBarChart2, FiEye,
 } from 'react-icons/fi';
 
+// ── Types ────────────────────────────────────────────────────
+interface AllUser {
+  id:               number;
+  email:            string;
+  createdAt:        string;
+  watchTimeSeconds: number;
+  videosWatched:    number;
+  avgCompletion:    number;
+  lastActivity:     string | null;
+}
+
 // ── Status Badge ─────────────────────────────────────────────
 function StatusBadge({ item }: { item: WatchHistoryItem }) {
   const s = getWatchStatus(item);
@@ -76,6 +87,7 @@ export default function AnalyticsPage() {
   const [topVideos,  setTopVideos]  = useState<{ title: string; watchTimeMinutes: number; views: number }[]>([]);
   const [topUsers,   setTopUsers]   = useState<{ email: string; watchTimeMinutes: number }[]>([]);
   const [compDist,   setCompDist]   = useState<{ name: string; value: number }[]>([]);
+  const [allUsers,   setAllUsers]   = useState<AllUser[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [tblLoading, setTblLoading] = useState(false);
   const [search,     setSearch]     = useState('');
@@ -109,12 +121,14 @@ export default function AnalyticsPage() {
       adminFetchAnalytics({ action: 'topVideos' }),
       adminFetchAnalytics({ action: 'topUsers' }),
       adminFetchAnalytics({ action: 'completionDist' }),
-    ]).then(([s, d, tv, tu, cd]) => {
+      adminFetchAnalytics({ action: 'allUsers' }),
+    ]).then(([s, d, tv, tu, cd, au]) => {
       setStats(s);
       setDaily(d);
       setTopVideos(tv);
       setTopUsers(tu);
       setCompDist(cd);
+      setAllUsers(au);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
@@ -334,6 +348,70 @@ export default function AnalyticsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Users Overview ─────────────────────────────────── */}
+      <div className="border border-[#2a2a2a] rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2a2a]">
+          <div className="flex items-center gap-2">
+            <FiUsers size={16} className="text-[#E50914]" />
+            <h2 className="text-white font-semibold text-sm">All Users</h2>
+            <span className="text-gray-500 text-xs">({allUsers.length})</span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#2a2a2a] text-left text-xs text-gray-500">
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Watch Time</th>
+                <th className="px-4 py-3 font-medium">Videos</th>
+                <th className="px-4 py-3 font-medium">Avg Completion</th>
+                <th className="px-4 py-3 font-medium">Last Activity</th>
+                <th className="px-4 py-3 font-medium">Member Since</th>
+                <th className="px-4 py-3 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {allUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-600 text-sm">No users found</td>
+                </tr>
+              ) : (
+                allUsers.map(u => (
+                  <tr key={u.id} className="border-b border-[#1a1a1a] hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3">
+                      <Link href={`/admin/analytics/user/${u.id}`} className="text-white hover:text-[#E50914] transition-colors truncate max-w-[200px] block">
+                        {u.email}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-gray-300 font-mono text-xs">{formatSeconds(u.watchTimeSeconds)}</td>
+                    <td className="px-4 py-3 text-gray-300 text-xs">{u.videosWatched}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#E50914] rounded-full" style={{ width: `${u.avgCompletion}%` }} />
+                        </div>
+                        <span className="text-gray-400 text-xs">{u.avgCompletion}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {u.lastActivity ? new Date(u.lastActivity).toLocaleDateString() : <span className="text-gray-700">Never</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {new Date(u.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link href={`/admin/analytics/user/${u.id}`}
+                            className="text-[11px] text-blue-400 hover:underline">Details</Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

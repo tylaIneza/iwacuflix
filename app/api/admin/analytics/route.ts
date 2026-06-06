@@ -42,6 +42,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(await WatchHistory.completionDistribution());
     }
 
+    if (action === 'allUsers') {
+      return NextResponse.json(await WatchHistory.allUsersStats());
+    }
+
     // default: history table
     const result = await WatchHistory.findAll({
       page, pageSize, search, userId, videoId,
