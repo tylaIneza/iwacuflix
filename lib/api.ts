@@ -87,3 +87,18 @@ export const adminChangePassword = (id: number, password: string) =>
 
 export const adminDeleteUser = (id: number) =>
   api.delete(`/api/admin/users/${id}`).then((r) => r.data);
+
+// ── Admin Analytics ───────────────────────────────────────
+export const adminFetchAnalytics = (params?: Record<string, string>) =>
+  api.get('/api/admin/analytics', { params }).then((r) => r.data);
+
+export const adminFetchVideoAnalytics = (id: string | number) =>
+  api.get(`/api/admin/analytics/video/${id}`).then((r) => r.data);
+
+export const adminFetchUserAnalytics = (id: string | number) =>
+  api.get(`/api/admin/analytics/user/${id}`).then((r) => r.data);
+
+export const adminExportAnalytics = (params?: Record<string, string>) => {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  window.open(`/api/admin/analytics/export${qs}`, '_blank');
+};

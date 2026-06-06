@@ -8,11 +8,12 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement()) @db.UnsignedInt
-  email     String   @unique @db.VarChar(255)
-  password  String   @db.VarChar(255)
-  role      Role     @default(admin)
-  createdAt DateTime @default(now()) @db.Timestamp(0)
+  id           Int                 @id @default(autoincrement()) @db.UnsignedInt
+  email        String              @unique @db.VarChar(255)
+  password     String              @db.VarChar(255)
+  role         Role                @default(admin)
+  createdAt    DateTime            @default(now()) @db.Timestamp(0)
+  watchHistory VideoWatchHistory[]
 
   @@map("users")
 }
@@ -22,19 +23,20 @@ enum Role {
 }
 
 model Content {
-  id          Int         @id @default(autoincrement()) @db.UnsignedInt
-  title       String      @db.VarChar(255)
-  description String      @db.Text
-  thumbnail   String      @db.VarChar(500)
-  videoUrl    String      @db.VarChar(500)
-  type        ContentType
-  category    String      @db.VarChar(100)
-  season      Int?        @db.SmallInt
-  episode     Int?        @db.SmallInt
-  isPublished Boolean     @default(false)
-  views       Int         @default(0) @db.UnsignedInt
-  createdAt   DateTime    @default(now()) @db.Timestamp(0)
-  updatedAt   DateTime    @updatedAt @db.Timestamp(0)
+  id           Int                 @id @default(autoincrement()) @db.UnsignedInt
+  title        String              @db.VarChar(255)
+  description  String              @db.Text
+  thumbnail    String              @db.VarChar(500)
+  videoUrl     String              @db.VarChar(500)
+  type         ContentType
+  category     String              @db.VarChar(100)
+  season       Int?                @db.SmallInt
+  episode      Int?                @db.SmallInt
+  isPublished  Boolean             @default(false)
+  views        Int                 @default(0) @db.UnsignedInt
+  createdAt    DateTime            @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime            @updatedAt @db.Timestamp(0)
+  watchHistory VideoWatchHistory[]
 
   @@index([isPublished])
   @@index([type])
@@ -46,6 +48,28 @@ model Content {
 enum ContentType {
   movie
   series
+}
+
+model VideoWatchHistory {
+  id                String    @id @default(cuid())
+  userId            Int       @db.UnsignedInt
+  videoId           Int       @db.UnsignedInt
+  watchTimeSeconds  Int       @default(0)
+  totalVideoSeconds Int       @default(0)
+  completionRate    Float     @default(0)
+  startedAt         DateTime? @db.Timestamp(0)
+  lastWatchedAt     DateTime? @db.Timestamp(0)
+  completed         Boolean   @default(false)
+  createdAt         DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime  @updatedAt @db.Timestamp(0)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video             Content   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
+  @@index([createdAt])
+  @@map("video_watch_history")
 }
 
 model SiteVisit {

@@ -8,6 +8,7 @@ import ContentCard from '@/components/ContentCard';
 import { Content } from '@/components/ContentCard';
 import { fetchContentById, fetchContent, recordView, recordVisit } from '@/lib/api';
 import { getWatchEntry } from '@/lib/auth';
+import { useVideoWatchTracker } from '@/hooks/useVideoWatchTracker';
 import { isInWatchlist, toggleWatchlist } from '@/lib/watchlist';
 import {
   FiArrowLeft, FiChevronRight, FiPlus, FiCheck,
@@ -28,6 +29,11 @@ export default function WatchPage() {
   const [inList,    setInList]    = useState(false);
   const [copied,    setCopied]    = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+
+  const tracker = useVideoWatchTracker({
+    videoId:  id,
+    videoUrl: content?.videoUrl ?? '',
+  });
 
   const load = useCallback(async (contentId: string) => {
     setLoading(true); setError('');
@@ -139,7 +145,11 @@ export default function WatchPage() {
                 url={content.videoUrl}
                 content={content}
                 startTime={startTime}
-                onEnded={handleEnded}
+                onEnded={() => { tracker.handleEnded(); handleEnded(); }}
+                onPlay={tracker.handlePlay}
+                onPause={tracker.handlePause}
+                onTimeUpdate={tracker.handleTimeUpdate}
+                onIframeLoad={tracker.handleIframeReady}
               />
             </div>
 

@@ -1,14 +1,15 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FiGrid, FiUpload, FiList, FiLogOut, FiFilm, FiUsers } from 'react-icons/fi';
+import { FiGrid, FiUpload, FiList, FiLogOut, FiFilm, FiUsers, FiBarChart2 } from 'react-icons/fi';
 import { removeToken } from '@/lib/auth';
 
 const links = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: FiGrid },
-  { href: '/admin/upload',    label: 'Upload',     icon: FiUpload },
-  { href: '/admin/manage',    label: 'Manage',     icon: FiList },
-  { href: '/admin/users',     label: 'Users',      icon: FiUsers },
+  { href: '/admin/dashboard',  label: 'Dashboard',  icon: FiGrid },
+  { href: '/admin/upload',     label: 'Upload',      icon: FiUpload },
+  { href: '/admin/manage',     label: 'Manage',      icon: FiList },
+  { href: '/admin/users',      label: 'Users',       icon: FiUsers },
+  { href: '/admin/analytics',  label: 'Analytics',   icon: FiBarChart2 },
 ];
 
 export default function Sidebar() {
@@ -39,7 +40,7 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
         {links.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
               key={href}

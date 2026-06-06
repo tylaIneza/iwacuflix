@@ -12,6 +12,10 @@ interface Props {
   content: Content;
   startTime?: number;
   onEnded?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onTimeUpdate?: (currentTime: number, duration: number) => void;
+  onIframeLoad?: () => void;
 }
 
 // ── Platform detector ─────────────────────────────────────
@@ -85,7 +89,7 @@ function resolveUrl(raw: string, startTime = 0): Resolved {
 }
 
 // ── Component ─────────────────────────────────────────────
-export default function VideoPlayer({ url, content, startTime = 0, onEnded }: Props) {
+export default function VideoPlayer({ url, content, startTime = 0, onEnded, onPlay, onPause, onTimeUpdate, onIframeLoad }: Props) {
   const videoRef   = useRef<HTMLVideoElement>(null);
   const [ready,    setReady]    = useState(false);
   const [errored,  setErrored]  = useState(false);
@@ -198,7 +202,7 @@ export default function VideoPlayer({ url, content, startTime = 0, onEnded }: Pr
               allow="accelerometer; gyroscope; autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
-              onLoad={() => setReady(true)}
+              onLoad={() => { setReady(true); onIframeLoad?.(); }}
               onError={() => { setReady(true); setErrored(true); }}
             />
           );
@@ -217,6 +221,9 @@ export default function VideoPlayer({ url, content, startTime = 0, onEnded }: Pr
             style={{ opacity: ready ? 1 : 0, background: '#000' }}
             onCanPlay={() => setReady(true)}
             onError={() => { setReady(true); setErrored(true); }}
+            onPlay={() => onPlay?.()}
+            onPause={() => onPause?.()}
+            onTimeUpdate={(e) => { const v = e.currentTarget; onTimeUpdate?.(v.currentTime, v.duration); }}
             onEnded={() => { saveProgress(); onEnded?.(); }}
           />
         )}
