@@ -13,29 +13,34 @@ interface Options {
 }
 
 export function useVideoWatchTracker({ videoId, videoUrl }: Options) {
-  const isIframe     = !isDirectVideoUrl(videoUrl);
-  const isPlaying    = useRef(false);
-  const watchedSecs  = useRef(0);
-  const duration     = useRef(0);
-  const started      = useRef(false);
-  const lastSent     = useRef(0);
-  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pendingRef   = useRef(false);
-  const mountedRef   = useRef(true);
+  const isIframe      = !isDirectVideoUrl(videoUrl);
+  const isPlaying     = useRef(false);
+  const watchedSecs   = useRef(0);
+  const committedSecs = useRef(0);  // how many seconds have been sent to server
+  const duration      = useRef(0);
+  const started       = useRef(false);
+  const lastSent      = useRef(0);
+  const intervalRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingRef    = useRef(false);
+  const mountedRef    = useRef(true);
 
   const isAuthed = useCallback(() => !!getToken(), []);
 
   const sendUpdate = useCallback(async (finish = false) => {
     if (!isAuthed() || !started.current || pendingRef.current) return;
+    const delta = watchedSecs.current - committedSecs.current;
+    if (delta <= 0 && !finish) return;
     const now = Date.now();
     if (!finish && now - lastSent.current < 9_000) return; // debounce 10s
     pendingRef.current = true;
     lastSent.current   = now;
-    const secs  = watchedSecs.current;
+    const d     = Math.max(0, delta);
     const total = Math.round(duration.current);
+    const rate  = total > 0 ? Math.round(Math.min(100, (watchedSecs.current / total) * 100)) : 0;
     try {
       const endpoint = finish ? '/api/watch/finish' : '/api/watch/update';
-      await api.post(endpoint, { videoId: Number(videoId), watchTimeSeconds: secs, totalVideoSeconds: total });
+      await api.post(endpoint, { videoId: Number(videoId), watchTimeDelta: d, totalVideoSeconds: total, completionRate: rate });
+      committedSecs.current = watchedSecs.current;
     } catch { /* silent — non-admin visitors get 401 which is expected */ }
     finally { pendingRef.current = false; }
   }, [videoId, isAuthed]);
@@ -80,12 +85,16 @@ export function useVideoWatchTracker({ videoId, videoUrl }: Options) {
       clearInterval(sendIv);
       document.removeEventListener('visibilitychange', onVisible);
       document.removeEventListener('visibilitychange', onHidden);
-      // Send final update on unmount
-      if (started.current && watchedSecs.current > 0) {
+      // Send final uncommitted delta on unmount
+      const delta = watchedSecs.current - committedSecs.current;
+      if (started.current && delta > 0) {
+        const total = Math.round(duration.current);
+        const rate  = total > 0 ? Math.round(Math.min(100, (watchedSecs.current / total) * 100)) : 0;
         api.post('/api/watch/update', {
           videoId: Number(videoId),
-          watchTimeSeconds:  watchedSecs.current,
-          totalVideoSeconds: Math.round(duration.current),
+          watchTimeDelta:    delta,
+          totalVideoSeconds: total,
+          completionRate:    rate,
         }).catch(() => {});
       }
     };

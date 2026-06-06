@@ -9,6 +9,52 @@ function periodStart(period: 'today' | 'week' | 'month'): Date {
 }
 
 export const WatchHistory = {
+  // Create record if missing, or just touch lastWatchedAt (never resets watch time)
+  async ensureRecord(userId: number, videoId: number, totalVideoSeconds?: number) {
+    const now   = new Date();
+    const total = totalVideoSeconds ?? 0;
+    return prisma.videoWatchHistory.upsert({
+      where:  { userId_videoId: { userId, videoId } },
+      create: { userId, videoId, watchTimeSeconds: 0, totalVideoSeconds: total, completionRate: 0, completed: false, startedAt: now, lastWatchedAt: now },
+      update: { lastWatchedAt: now, ...(total > 0 ? { totalVideoSeconds: total } : {}) },
+    });
+  },
+
+  // Add a watch-time delta and update completion rate
+  async addWatchTime(data: {
+    userId:            number;
+    videoId:           number;
+    watchTimeDelta:    number;   // seconds to ADD (not replace)
+    totalVideoSeconds?: number;
+    completionRate:    number;   // client-computed: sessionSecs / duration * 100
+    completed?:        boolean;
+  }) {
+    const total = data.totalVideoSeconds ?? 0;
+    const done  = data.completed || data.completionRate >= 90;
+    const now   = new Date();
+    return prisma.videoWatchHistory.upsert({
+      where:  { userId_videoId: { userId: data.userId, videoId: data.videoId } },
+      create: {
+        userId:            data.userId,
+        videoId:           data.videoId,
+        watchTimeSeconds:  data.watchTimeDelta,
+        totalVideoSeconds: total,
+        completionRate:    data.completionRate,
+        completed:         done,
+        startedAt:         now,
+        lastWatchedAt:     now,
+      },
+      update: {
+        watchTimeSeconds:  { increment: data.watchTimeDelta },
+        completionRate:    data.completionRate,
+        completed:         done,
+        lastWatchedAt:     now,
+        ...(total > 0 && { totalVideoSeconds: total }),
+      },
+    });
+  },
+
+  // Keep for backward compat — used by analytics stats path only
   async upsert(data: {
     userId: number;
     videoId: number;
@@ -16,30 +62,15 @@ export const WatchHistory = {
     totalVideoSeconds?: number;
     completed?: boolean;
   }) {
-    const total = data.totalVideoSeconds ?? 0;
-    const rate  = total > 0 ? Math.min(100, (data.watchTimeSeconds / total) * 100) : 0;
-    const done  = data.completed || rate >= 90;
-    const now   = new Date();
-
-    return prisma.videoWatchHistory.upsert({
-      where:  { userId_videoId: { userId: data.userId, videoId: data.videoId } },
-      create: {
-        userId:            data.userId,
-        videoId:           data.videoId,
-        watchTimeSeconds:  data.watchTimeSeconds,
-        totalVideoSeconds: total,
-        completionRate:    rate,
-        completed:         done,
-        startedAt:         now,
-        lastWatchedAt:     now,
-      },
-      update: {
-        watchTimeSeconds:  data.watchTimeSeconds,
-        ...(total > 0 && { totalVideoSeconds: total }),
-        completionRate:    rate,
-        completed:         done,
-        lastWatchedAt:     now,
-      },
+    return WatchHistory.addWatchTime({
+      userId:           data.userId,
+      videoId:          data.videoId,
+      watchTimeDelta:   data.watchTimeSeconds,
+      totalVideoSeconds: data.totalVideoSeconds,
+      completionRate:   data.totalVideoSeconds && data.totalVideoSeconds > 0
+        ? Math.min(100, (data.watchTimeSeconds / data.totalVideoSeconds) * 100)
+        : 0,
+      completed: data.completed,
     });
   },
 

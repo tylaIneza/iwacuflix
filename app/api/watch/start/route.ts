@@ -21,12 +21,11 @@ export async function POST(req: NextRequest) {
   const totalVideoSeconds = Number(body.totalVideoSeconds) || 0;
 
   try {
-    const record = await WatchHistory.upsert({
-      userId: payload.userId,
+    const record = await WatchHistory.ensureRecord(
+      payload.userId,
       videoId,
-      watchTimeSeconds:  0,
-      totalVideoSeconds: totalVideoSeconds > 0 ? totalVideoSeconds : undefined,
-    });
+      totalVideoSeconds > 0 ? totalVideoSeconds : undefined,
+    );
     return NextResponse.json({ id: record.id, watchTimeSeconds: record.watchTimeSeconds });
   } catch (err) {
     console.error('[watch/start]', err);
