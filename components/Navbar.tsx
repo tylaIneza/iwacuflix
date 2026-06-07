@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { FiSearch, FiX, FiBookmark, FiHome, FiFilm, FiTv } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 import { getWatchlist } from '@/lib/watchlist';
 
 interface Props { onSearch?: (q: string) => void }
@@ -104,8 +105,27 @@ export default function Navbar({ onSearch }: Props) {
             </div>
           </div>
 
-          {/* Search — full-width on mobile when open */}
+          {/* Search + WhatsApp — full-width on mobile when open */}
           <div className={`flex items-center gap-2 md:gap-3 ${searchOn ? 'flex-1' : ''}`}>
+            {/* WhatsApp group button — hidden on mobile (shown in bottom nav) */}
+            {!searchOn && (
+              <a
+                href="https://chat.whatsapp.com/G8Cy4xq8WxNB7NqTQA83ga?s=cl&p=i&mlu=4"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Join our WhatsApp group — get notified of new movies!"
+                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-semibold wa-glow hover:scale-105 active:scale-95 transition-transform duration-150 select-none"
+                style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)' }}
+              >
+                <FaWhatsapp size={17} />
+                <span>Join Group</span>
+                {/* pulsing live dot */}
+                <span className="relative flex h-2 w-2">
+                  <span className="wa-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                </span>
+              </a>
+            )}
             {onSearch && (
               searchOn ? (
                 <div className="flex items-center gap-2 glass px-3 py-2 rounded-xl w-full">
@@ -169,6 +189,30 @@ export default function Navbar({ onSearch }: Props) {
               </Link>
             );
           })}
+
+          {/* WhatsApp group join button */}
+          <a
+            href="https://chat.whatsapp.com/G8Cy4xq8WxNB7NqTQA83ga?s=cl&p=i&mlu=4"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex flex-col items-center justify-center gap-1 flex-1 pt-2 pb-2 relative"
+          >
+            {/* glowing circle icon */}
+            <div className="relative flex items-center justify-center">
+              {/* ping ring */}
+              <span className="wa-ping absolute inline-flex h-9 w-9 rounded-full"
+                style={{ background: 'rgba(37,211,102,0.35)' }} />
+              <div
+                className="relative flex items-center justify-center w-8 h-8 rounded-full"
+                style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', boxShadow: '0 0 12px rgba(37,211,102,0.6)' }}
+              >
+                <FaWhatsapp size={17} className="text-white" />
+              </div>
+            </div>
+            <span className="text-[10px] font-bold leading-none" style={{ color: '#25D366' }}>
+              WhatsApp
+            </span>
+          </a>
         </div>
       </nav>
     </>

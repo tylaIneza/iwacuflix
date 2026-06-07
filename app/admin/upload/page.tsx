@@ -1,12 +1,10 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminCreateContent, adminUploadThumbnail } from '@/lib/api';
+import { adminCreateContent, adminUploadThumbnail, adminFetchCategories } from '@/lib/api';
 import {
-  FiUpload, FiImage, FiLoader, FiCheckCircle, FiAlertCircle, FiX,
+  FiUpload, FiImage, FiLoader, FiCheckCircle, FiAlertCircle, FiX, FiTag,
 } from 'react-icons/fi';
-
-const CATEGORIES = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Animation', 'Documentary', 'Fantasy', 'Other'];
 
 interface FormState {
   title: string;
@@ -20,30 +18,53 @@ interface FormState {
   isPublished: boolean;
 }
 
-const defaultForm: FormState = {
-  title: '', description: '', thumbnail: '', videoUrl: '',
-  type: 'movie', category: 'Action', season: '1', episode: '1', isPublished: false,
-};
-
 export default function UploadPage() {
-  const router = useRouter();
+  const router  = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [form,           setForm]           = useState<FormState>(defaultForm);
-  const [thumbPreview,   setThumbPreview]   = useState('');
-  const [uploading,      setUploading]      = useState(false);
-  const [submitting,     setSubmitting]     = useState(false);
-  const [success,        setSuccess]        = useState(false);
-  const [error,          setError]          = useState('');
+  const [categories,   setCategories]   = useState<string[]>([]);
+  const [catsLoading,  setCatsLoading]  = useState(true);
+  const [form,         setForm]         = useState<FormState>({
+    title: '', description: '', thumbnail: '', videoUrl: '',
+    type: 'movie', category: '', season: '1', episode: '1', isPublished: false,
+  });
+  const [thumbPreview, setThumbPreview] = useState('');
+  const [uploading,    setUploading]    = useState(false);
+  const [submitting,   setSubmitting]   = useState(false);
+  const [success,      setSuccess]      = useState(false);
+  const [error,        setError]        = useState('');
 
-  const set = (field: keyof FormState, value: string | boolean) =>
-    setForm((f) => ({ ...f, [field]: value }));
+  const set = useCallback((field: keyof FormState, value: string | boolean) =>
+    setForm((f) => ({ ...f, [field]: value })), []);
+
+  // Load categories on mount
+  useEffect(() => {
+    const FALLBACK = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Animation', 'Documentary', 'Fantasy'];
+    adminFetchCategories()
+      .then((rows: { name: string }[]) => {
+        const names = rows.map((r: { name: string }) => r.name);
+        const list  = names.length > 0 ? names : FALLBACK;
+        setCategories(list);
+        setForm((f) => ({ ...f, category: f.category || list[0] }));
+      })
+      .catch(() => {
+        setCategories(FALLBACK);
+        setForm((f) => ({ ...f, category: f.category || FALLBACK[0] }));
+      })
+      .finally(() => setCatsLoading(false));
+  }, []);
+
+  const resetForm = useCallback((cats: string[]) => {
+    setForm({
+      title: '', description: '', thumbnail: '', videoUrl: '',
+      type: 'movie', category: cats[0] ?? '', season: '1', episode: '1', isPublished: false,
+    });
+    setThumbPreview('');
+    setError('');
+  }, []);
 
   const handleThumbnailFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file.');
-      return;
-    }
+    if (!file.type.startsWith('image/')) { setError('Please select an image file.'); return; }
     setUploading(true);
     setError('');
     try {
@@ -59,6 +80,7 @@ export default function UploadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.category) { setError('Please select a category.'); return; }
     setError('');
     setSubmitting(true);
 
@@ -71,7 +93,6 @@ export default function UploadPage() {
       category:    form.category,
       isPublished: form.isPublished,
     };
-
     if (form.type === 'series') {
       payload.season  = Number(form.season);
       payload.episode = Number(form.episode);
@@ -80,8 +101,7 @@ export default function UploadPage() {
     try {
       await adminCreateContent(payload);
       setSuccess(true);
-      setForm(defaultForm);
-      setThumbPreview('');
+      resetForm(categories);
       setTimeout(() => setSuccess(false), 4000);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -119,8 +139,7 @@ export default function UploadPage() {
         <Field label="Title" required>
           <input
             type="text" value={form.title} onChange={(e) => set('title', e.target.value)}
-            placeholder="e.g. Inception" required
-            className={inputCls}
+            placeholder="e.g. Inception" required className={inputCls}
           />
         </Field>
 
@@ -145,12 +164,26 @@ export default function UploadPage() {
             </select>
           </Field>
           <Field label="Category" required>
-            <select
-              value={form.category} onChange={(e) => set('category', e.target.value)}
-              className={inputCls}
-            >
-              {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-            </select>
+            <div className="space-y-1.5">
+              {catsLoading ? (
+                <div className={`${inputCls} flex items-center gap-2 text-gray-500`}>
+                  <FiLoader size={13} className="animate-spin" /> Loading…
+                </div>
+              ) : (
+                <select
+                  value={form.category} onChange={(e) => set('category', e.target.value)}
+                  className={inputCls} required
+                >
+                  {categories.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              )}
+              <a
+                href="/admin/categories"
+                className="inline-flex items-center gap-1 text-[11px] text-gray-600 hover:text-[#E50914] transition-colors"
+              >
+                <FiTag size={11} /> Manage categories
+              </a>
+            </div>
           </Field>
         </div>
 
@@ -177,15 +210,12 @@ export default function UploadPage() {
         {/* Thumbnail */}
         <Field label="Thumbnail">
           <div className="space-y-2">
-            {/* URL input */}
             <input
               type="url" value={form.thumbnail}
               onChange={(e) => { set('thumbnail', e.target.value); setThumbPreview(e.target.value); }}
               placeholder="https://… or upload a file below"
               className={inputCls}
             />
-
-            {/* File upload */}
             <div
               className="border border-dashed border-[#333] rounded-lg p-4 text-center cursor-pointer hover:border-[#E50914] transition-colors"
               onClick={() => fileRef.current?.click()}
@@ -194,17 +224,11 @@ export default function UploadPage() {
                 ref={fileRef} type="file" accept="image/*" className="hidden"
                 onChange={(e) => { if (e.target.files?.[0]) handleThumbnailFile(e.target.files[0]); }}
               />
-              {uploading ? (
-                <FiLoader className="animate-spin text-[#E50914] mx-auto mb-1" size={20} />
-              ) : (
-                <FiImage className="text-gray-600 mx-auto mb-1" size={20} />
-              )}
-              <p className="text-gray-600 text-xs">
-                {uploading ? 'Uploading…' : 'Click to upload an image'}
-              </p>
+              {uploading
+                ? <FiLoader className="animate-spin text-[#E50914] mx-auto mb-1" size={20} />
+                : <FiImage className="text-gray-600 mx-auto mb-1" size={20} />}
+              <p className="text-gray-600 text-xs">{uploading ? 'Uploading…' : 'Click to upload an image'}</p>
             </div>
-
-            {/* Preview */}
             {thumbPreview && (
               <div className="relative inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -239,15 +263,9 @@ export default function UploadPage() {
           <button
             type="button"
             onClick={() => set('isPublished', !form.isPublished)}
-            className={`relative w-11 h-6 rounded-full transition-colors ${
-              form.isPublished ? 'bg-[#E50914]' : 'bg-gray-700'
-            }`}
+            className={`relative w-11 h-6 rounded-full transition-colors ${form.isPublished ? 'bg-[#E50914]' : 'bg-gray-700'}`}
           >
-            <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                form.isPublished ? 'translate-x-5' : ''
-              }`}
-            />
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isPublished ? 'translate-x-5' : ''}`} />
           </button>
           <span className="text-gray-400 text-sm">
             {form.isPublished ? 'Published — visible to users' : 'Draft — hidden from users'}
@@ -257,13 +275,13 @@ export default function UploadPage() {
         {/* Submit */}
         <div className="flex gap-3 pt-2">
           <button
-            type="submit" disabled={submitting}
+            type="submit" disabled={submitting || catsLoading}
             className="flex items-center gap-2 bg-[#E50914] hover:bg-[#c40812] text-white font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? <><FiLoader className="animate-spin" size={15} /> Saving…</> : <><FiUpload size={15} /> Save Content</>}
           </button>
           <button
-            type="button" onClick={() => { setForm(defaultForm); setThumbPreview(''); setError(''); }}
+            type="button" onClick={() => resetForm(categories)}
             className="px-6 py-2.5 rounded-lg border border-[#333] text-gray-400 hover:text-white hover:border-gray-500 transition-colors text-sm"
           >
             Clear

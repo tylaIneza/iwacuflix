@@ -88,6 +88,16 @@ export const adminChangePassword = (id: number, password: string) =>
 export const adminDeleteUser = (id: number) =>
   api.delete(`/api/admin/users/${id}`).then((r) => r.data);
 
+// ── Categories ────────────────────────────────────────────
+export const adminFetchCategories = () =>
+  api.get('/api/admin/categories').then((r) => r.data);
+
+export const adminCreateCategory = (name: string) =>
+  api.post('/api/admin/categories', { name }).then((r) => r.data);
+
+export const adminDeleteCategory = (id: number) =>
+  api.delete(`/api/admin/categories/${id}`).then((r) => r.data);
+
 // ── Admin Analytics ───────────────────────────────────────
 export const adminFetchAnalytics = (params?: Record<string, string>) =>
   api.get('/api/admin/analytics', { params }).then((r) => r.data);

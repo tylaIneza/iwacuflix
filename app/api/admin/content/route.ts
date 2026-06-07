@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
     const item = await Content.create(body);
     return NextResponse.json(item, { status: 201 });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ message: 'Server error' }, { status: 500 });
+    console.error('[content POST]', err);
+    const detail = (err as { message?: string })?.message ?? 'Unknown error';
+    return NextResponse.json({ message: `Server error: ${detail}` }, { status: 500 });
   }
 }

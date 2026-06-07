@@ -49,6 +49,14 @@ enum ContentType {
   series
 }
 
+model Category {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  name      String   @unique @db.VarChar(100)
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+
+  @@map("categories")
+}
+
 // Tracks watch time for every visitor — no login required.
 // sessionId is a UUID generated in the visitor's localStorage.
 model WatchEvent {
