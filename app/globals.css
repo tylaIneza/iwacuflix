@@ -180,3 +180,15 @@ body {
     transform: scale(0.97);
   }
 }
+
+/* ── Video player fullscreen: remove aspect-ratio padding ─ */
+.video-shell:-webkit-full-screen {
+  padding-bottom: 0 !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+}
+.video-shell:fullscreen {
+  padding-bottom: 0 !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+}
