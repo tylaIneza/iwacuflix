@@ -109,8 +109,8 @@ export default function VideoPlayer({
   const [ready,   setReady]   = useState(false);
   const [errored, setErrored] = useState(false);
 
-  // Custom controls state
-  const [ctrlVisible,  setCtrlVisible]  = useState(true);
+  // Custom controls state — hidden by default, shown on tap
+  const [ctrlVisible,  setCtrlVisible]  = useState(false);
   const [isPlaying,    setIsPlaying]    = useState(false);
   const [currTime,     setCurrTime]     = useState(0);
   const [dur,          setDur]          = useState(0);
@@ -429,52 +429,56 @@ export default function VideoPlayer({
               </div>
             )}
 
-            {/* Controls overlay */}
+            {/* Controls overlay — compact on mobile */}
             <div
-              className={`absolute bottom-0 left-0 right-0 z-20 transition-opacity duration-300 ${
+              className={`absolute bottom-0 left-0 right-0 z-20 transition-opacity duration-200 ${
                 ctrlVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Gradient scrim */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
 
-              <div className="relative px-3 sm:px-4 pb-2.5 sm:pb-3.5 pt-8 sm:pt-10">
-                {/* Seek bar — tall touch target, thin visual track */}
+              <div className="relative px-2 sm:px-4 pb-1.5 sm:pb-3 pt-5 sm:pt-8">
+                {/* Seek bar: 24px touch target, 2px visual track on mobile / 4px on sm+ */}
                 <div
-                  className="relative h-7 sm:h-6 flex items-center cursor-pointer touch-none mb-1"
+                  className="relative h-6 flex items-center cursor-pointer touch-none mb-0.5"
                   onPointerDown={handleSeekDown}
                   onPointerMove={handleSeekMove}
                   onPointerUp={handleSeekUp}
                 >
-                  <div className="w-full h-1 bg-white/25 rounded-full">
+                  <div className="w-full h-0.5 sm:h-1 bg-white/25 rounded-full">
                     <div
                       className="h-full bg-[#E50914] rounded-full relative"
                       style={{ width: `${pct}%` }}
                     >
-                      {/* Thumb */}
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 sm:w-3.5 sm:h-3.5 bg-white rounded-full shadow-md" />
+                      {/* Thumb: 10px on mobile, 14px on sm+ */}
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 bg-white rounded-full shadow" />
                     </div>
                   </div>
                 </div>
 
                 {/* Controls row */}
-                <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="flex items-center gap-1.5 sm:gap-3">
                   {/* Play / Pause */}
                   <button
                     onClick={(e) => { e.stopPropagation(); togglePlay(); resetCtrls(); }}
-                    className="flex items-center justify-center text-white p-1.5 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors"
+                    className="flex items-center justify-center text-white p-1 sm:p-1.5 rounded active:bg-white/20 transition-colors"
                     aria-label={isPlaying ? 'Pause' : 'Play'}
                   >
                     {isPlaying
-                      ? <FiPause size={20} fill="white" />
-                      : <FiPlay  size={20} fill="white" className="ml-px" />
+                      ? <FiPause size={14} fill="white" className="sm:hidden" />
+                      : <FiPlay  size={14} fill="white" className="sm:hidden ml-px" />
+                    }
+                    {isPlaying
+                      ? <FiPause size={18} fill="white" className="hidden sm:block" />
+                      : <FiPlay  size={18} fill="white" className="hidden sm:block ml-px" />
                     }
                   </button>
 
                   {/* Time */}
-                  <span className="text-white/85 text-xs font-mono tabular-nums select-none">
-                    {fmt(currTime)}<span className="text-white/35 mx-0.5">/</span>{fmt(dur)}
+                  <span className="text-white/80 text-[9px] sm:text-xs font-mono tabular-nums select-none leading-none">
+                    {fmt(currTime)}<span className="text-white/30 mx-px sm:mx-0.5">/</span>{fmt(dur)}
                   </span>
 
                   <div className="flex-1" />
@@ -482,10 +486,17 @@ export default function VideoPlayer({
                   {/* Fullscreen */}
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFs(); }}
-                    className="flex items-center justify-center text-white p-1.5 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors"
+                    className="flex items-center justify-center text-white p-1 sm:p-1.5 rounded active:bg-white/20 transition-colors"
                     aria-label={isFs ? 'Exit fullscreen' : 'Fullscreen'}
                   >
-                    {isFs ? <FiMinimize size={17} /> : <FiMaximize size={17} />}
+                    {isFs
+                      ? <FiMinimize size={13} className="sm:hidden" />
+                      : <FiMaximize size={13} className="sm:hidden" />
+                    }
+                    {isFs
+                      ? <FiMinimize size={17} className="hidden sm:block" />
+                      : <FiMaximize size={17} className="hidden sm:block" />
+                    }
                   </button>
                 </div>
               </div>
