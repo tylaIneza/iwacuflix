@@ -141,14 +141,22 @@ export default function VideoPlayer({
 
   useEffect(() => { setReady(false); setErrored(false); }, [url]);
 
-  // ── Fullscreen listener ───────────────────────────────
+  // ── Fullscreen listener (document + iOS video element) ──
   useEffect(() => {
     const onFsChange = () => setIsFs(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', onFsChange);
     document.addEventListener('webkitfullscreenchange', onFsChange);
+    // iOS Safari fires fullscreen events on the video element, not document
+    const v = videoRef.current;
+    const onIosEnter = () => setIsFs(true);
+    const onIosExit  = () => setIsFs(false);
+    v?.addEventListener('webkitbeginfullscreen', onIosEnter);
+    v?.addEventListener('webkitendfullscreen',   onIosExit);
     return () => {
       document.removeEventListener('fullscreenchange', onFsChange);
       document.removeEventListener('webkitfullscreenchange', onFsChange);
+      v?.removeEventListener('webkitbeginfullscreen', onIosEnter);
+      v?.removeEventListener('webkitendfullscreen',   onIosExit);
     };
   }, []);
 
@@ -178,21 +186,34 @@ export default function VideoPlayer({
 
   // ── Fullscreen ────────────────────────────────────────
   const toggleFs = useCallback(async () => {
+    const v  = videoRef.current;
     const el = containerRef.current;
     if (!el) return;
-    if (!document.fullscreenElement) {
+
+    const inFs = !!document.fullscreenElement || !!(v as any)?.webkitDisplayingFullscreen;
+
+    if (!inFs) {
+      // iOS Safari: requestFullscreen is unsupported on arbitrary elements;
+      // only webkitEnterFullscreen on the video element itself works.
+      if (!(document.fullscreenEnabled) && (v as any)?.webkitEnterFullscreen) {
+        (v as any).webkitEnterFullscreen();
+        return;
+      }
       try { await el.requestFullscreen(); }
       catch {
-        try { (el as any).webkitRequestFullscreen(); }
-        catch { (videoRef.current as any)?.webkitEnterFullscreen?.(); }
+        try { (el as any).webkitRequestFullscreen?.(); }
+        catch { (v as any)?.webkitEnterFullscreen?.(); }
       }
     } else {
-      document.exitFullscreen().catch(() => {});
+      if ((v as any)?.webkitExitFullscreen) (v as any).webkitExitFullscreen();
+      else document.exitFullscreen().catch(() => {});
     }
   }, []);
 
   // ── Tap area: double-tap seek + show/hide controls ────
-  const handleAreaTap = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  // Uses onPointerDown (not onClick) to fire immediately on touch — no 300ms delay.
+  const handleAreaTap = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault(); // prevent browser generating a synthetic click after touch
     e.stopPropagation();
     const rect  = e.currentTarget.getBoundingClientRect();
     const xFrac = (e.clientX - rect.left) / rect.width;
@@ -201,8 +222,8 @@ export default function VideoPlayer({
     const now = Date.now();
     const dt  = doubleTap.current;
 
-    // Double-tap on left or right zone → seek ±10s
-    if (now - dt.t < 300 && dt.side === side && side !== 'c') {
+    // Double-tap on left or right zone → seek ±10s (400ms window for real fingers)
+    if (now - dt.t < 400 && dt.side === side && side !== 'c') {
       const v = videoRef.current;
       if (v) {
         v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + (side === 'l' ? -10 : 10)));
@@ -387,8 +408,8 @@ export default function VideoPlayer({
 
             {/* Tap area — double-tap seek zones + show/hide toggle */}
             <div
-              className="absolute inset-0 z-10 cursor-pointer"
-              onClick={handleAreaTap}
+              className="absolute inset-0 z-10 cursor-pointer touch-none"
+              onPointerDown={handleAreaTap}
             />
 
             {/* Double-tap seek flash */}
