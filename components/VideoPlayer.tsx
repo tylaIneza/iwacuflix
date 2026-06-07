@@ -69,8 +69,16 @@ function resolveUrl(raw: string, startTime = 0): Resolved {
   if (/^[0-9a-f]{32}$/.test(url))
     return { kind: 'iframe', src: `https://iframe.cloudflarestream.com/${url}` };
 
-  const driveId = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1];
-  if (driveId) return { kind: 'iframe', src: `https://drive.google.com/file/d/${driveId}/preview` };
+  // Google Drive — extract file ID from all common share URL formats
+  const driveId =
+    url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1] ||
+    url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/)?.[1] ||
+    url.match(/drive\.google\.com\/uc\?.*[?&]id=([a-zA-Z0-9_-]+)/)?.[1] ||
+    url.match(/docs\.google\.com\/[^/]+\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+  if (driveId) {
+    // Use direct download URL so our own player controls work instead of Drive's floating UI
+    return { kind: 'video', src: `https://drive.google.com/uc?export=download&id=${driveId}&confirm=t` };
+  }
 
   const dmId = url.match(/dailymotion\.com\/video\/([a-zA-Z0-9]+)/)?.[1];
   if (dmId) return { kind: 'iframe', src: `https://www.dailymotion.com/embed/video/${dmId}?autoplay=1` };
@@ -342,14 +350,9 @@ export default function VideoPlayer({
 
         {/* ── Iframe ── */}
         {kind === 'iframe' && (() => {
-          const isYT    = src.includes('youtube.com') || src.includes('youtu.be');
-          const isDrive = src.includes('drive.google.com');
+          const isYT = src.includes('youtube.com') || src.includes('youtu.be');
 
-          const iframeStyle: React.CSSProperties = isYT
-            ? { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', opacity: ready ? 1 : 0, transition: 'opacity 0.7s' }
-            : isDrive
-            ? { position: 'absolute', top: '-52px', left: 0, width: '100%', height: 'calc(100% + 52px)', border: 'none', opacity: ready ? 1 : 0, transition: 'opacity 0.7s' }
-            : { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', opacity: ready ? 1 : 0, transition: 'opacity 0.7s' };
+          const iframeStyle: React.CSSProperties = { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', opacity: ready ? 1 : 0, transition: 'opacity 0.7s' };
 
           return (
             <iframe
