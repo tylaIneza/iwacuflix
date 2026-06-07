@@ -25,8 +25,8 @@ model Content {
   id          Int          @id @default(autoincrement()) @db.UnsignedInt
   title       String       @db.VarChar(255)
   description String       @db.Text
-  thumbnail   String       @db.VarChar(500)
-  videoUrl    String       @db.VarChar(500)
+  thumbnail   String       @db.Text
+  videoUrl    String       @db.Text
   type        ContentType
   category    String       @db.VarChar(100)
   season      Int?         @db.SmallInt
