@@ -119,7 +119,7 @@ export default function VideoPlayer({
   const [dur,          setDur]          = useState(0);
   const [buffered,     setBuffered]     = useState(0);
   const [volume,       setVolume]       = useState(1);
-  const [muted,        setMuted]        = useState(false);
+  const [muted,        setMuted]        = useState(true); // start muted so autoplay works on HTTPS
   const [speed,        setSpeed]        = useState(1);
   const [showSpeed,    setShowSpeed]    = useState(false);
   const [isFs,         setIsFs]         = useState(false);
@@ -518,6 +518,7 @@ export default function VideoPlayer({
               key={src}
               src={src}
               autoPlay
+              muted
               playsInline
               className="absolute inset-0 w-full h-full object-contain"
               style={{ opacity: ready ? 1 : 0, transition: 'opacity 0.5s', background: '#000' }}
@@ -527,6 +528,7 @@ export default function VideoPlayer({
                 const v = e.currentTarget;
                 setDur(v.duration);
                 setVolume(v.volume);
+                setMuted(v.muted);
               }}
               onPlay={() => {
                 isPlayingRef.current = true;
@@ -798,24 +800,6 @@ export default function VideoPlayer({
         )}
       </div>
 
-      <style jsx global>{`
-        @keyframes centerFlash {
-          0%   { opacity: 1; transform: scale(1); }
-          60%  { opacity: 0.8; transform: scale(1.3); }
-          100% { opacity: 0; transform: scale(1.5); }
-        }
-        .volume-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 12px; height: 12px;
-          border-radius: 50%;
-          background: white;
-          cursor: pointer;
-        }
-        .volume-slider::-webkit-slider-runnable-track {
-          height: 4px;
-          border-radius: 2px;
-        }
-      `}</style>
     </div>
   );
 }

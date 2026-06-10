@@ -208,3 +208,42 @@ body {
   height: 100% !important;
   border-radius: 0 !important;
 }
+
+/* ── Video player: center flash animation ─────────────── */
+@keyframes centerFlash {
+  0%   { opacity: 1; transform: scale(1); }
+  60%  { opacity: 0.8; transform: scale(1.3); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* ── Video player: volume slider ─────────────────────── */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+}
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: none;
+}
+.volume-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+}
