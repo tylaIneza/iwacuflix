@@ -123,7 +123,7 @@ export default function VideoPlayer({
   const [speed,        setSpeed]        = useState(1);
   const [showSpeed,    setShowSpeed]    = useState(false);
   const [isFs,         setIsFs]         = useState(false);
-  const [ctrlVisible,  setCtrlVisible]  = useState(false);
+  const [ctrlVisible,  setCtrlVisible]  = useState(true);
   const [seekDragging, setSeekDragging] = useState(false);
   const [hoverTime,    setHoverTime]    = useState<number | null>(null);
   const [hoverX,       setHoverX]       = useState(0);
@@ -531,6 +531,7 @@ export default function VideoPlayer({
               onPlay={() => {
                 isPlayingRef.current = true;
                 setIsPlaying(true);
+                setCtrlVisible(true);
                 scheduleHide();
                 onPlay?.();
               }}
@@ -564,7 +565,7 @@ export default function VideoPlayer({
             {/* Tap zone (pointer-only — doesn't block controls row) */}
             <div
               className="absolute inset-0 z-10 touch-none"
-              style={{ bottom: ctrlVisible ? '72px' : 0, cursor: 'pointer' }}
+              style={{ bottom: (ctrlVisible || !isPlaying) ? '72px' : 0, cursor: 'pointer' }}
               onPointerDown={handleAreaTap}
             />
 
@@ -625,10 +626,10 @@ export default function VideoPlayer({
               </div>
             )}
 
-            {/* Controls overlay */}
+            {/* Controls overlay — always visible when paused, auto-hides when playing */}
             <div
               className={`absolute bottom-0 left-0 right-0 z-40 transition-all duration-300 ${
-                ctrlVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'
+                ctrlVisible || !isPlaying ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'
               }`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -785,7 +786,7 @@ export default function VideoPlayer({
             {/* Paused: big center play button */}
             {!isPlaying && ready && !errored && (
               <div
-                className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-200 ${ctrlVisible ? 'opacity-100' : 'opacity-0'}`}
+                className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
               >
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                   <FiPlay size={22} fill="white" className="text-white ml-1 sm:hidden" />
